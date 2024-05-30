@@ -2,7 +2,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-def plot_accuracy_from_history(*histories, labels=None) -> None:
+def plot_accuracy_from_history(*histories, labels=None, path=None) -> None:
     plt.rcParams['figure.figsize'] = (25.0, 5.0)  # set default size of plots
 
     for i, history in enumerate(histories):
@@ -15,3 +15,13 @@ def plot_accuracy_from_history(*histories, labels=None) -> None:
         
         plt.plot(epochs, acc, color + 'o', label=f'Training accuracy for {label}')
         plt.plot(epochs, val_acc, color, label=f'Validation accuracy for {label}')
+
+    plt.title('Training and validation accuracy')
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy')
+    plt.legend()
+
+    if path:
+        plt.savefig(path)
+    else:
+        plt.show()
