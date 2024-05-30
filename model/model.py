@@ -10,7 +10,7 @@ print(f"Using device: {device}")
 
 
 
-class ModelTuning(nn.Module):
+class TunedModel(nn.Module):
     def __init__(self):
         super().__init__()
         self.resnet = models.resnet18(pretrained=True)
