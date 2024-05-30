@@ -160,3 +160,9 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 .idea/
 .vscode/
+
+# Machine Learning datasets
+model/kaggle/ 
+
+# Saved models
+model/saved_models/
