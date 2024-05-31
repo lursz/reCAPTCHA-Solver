@@ -11,7 +11,7 @@ class GuiAgent:
         return pyautogui.position()
     
     def openBrowser(self, url: str) -> None:
-        pyautogui.hotkey('win')
+        pyautogui.hotkey('win', 'r')
         pyautogui.typewrite('brave ' + url)
         pyautogui.press('enter')
         print("Browser opened")
@@ -19,9 +19,9 @@ class GuiAgent:
     def clickImage(self, image: str) -> None:
         pyautogui.click(pyautogui.locateCenterOnScreen(image))
     
+    def clickCheckbox(self) -> None:
+        self.clickImage('images/captcha_checkbox.png')
+        
     def downloadAudio(self):
         self.clickImage('images/headphones.png')
         self.clickImage('images/download.png')
-        
-guiAgent = GuiAgent()
-guiAgent.openBrowser("localhost")

@@ -27,7 +27,7 @@ data_transforms = {
         transforms.ToTensor(),
         # lambda x: x.to(device),
         transforms.RandomAffine(degrees=20, translate=(0.1, 0.1), scale=(0.8, 1.2), shear=0.1),
-        transforms.ColorJitter(brightness=0.2, contrast=0.15, saturation=0.2, hue=0.1),
+        # transforms.ColorJitter(brightness=0.2, contrast=0.15, saturation=0.2, hue=0.1),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ]),
     'val': transforms.Compose([
@@ -69,5 +69,5 @@ torch.save(resnet_model.state_dict(), f'saved_models/model_{datetime.datetime.no
 
 # Plot training history
 visualizeData.plot_accuracy_from_history(history)#, path="accuracy_plot.png")
-# save plot to pickle
+
 

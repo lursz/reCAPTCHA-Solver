@@ -1,5 +1,4 @@
 import os
-import glob
 import shutil
 import numpy as np
 # Used datasets
@@ -13,7 +12,7 @@ new_image_path = 'processed_dataset/images'
 # .-^-._.-^-._.-^-._.-^-._.-^-._.-^-._.-^-._.-^-._.-^-._.-^-._.-^-._
 
 # image_directories = glob.glob(os.path.join(image_path, "*"))
-image_files = [os.path.join(dir_path, file_name) for dir_path, _, file_names in os.walk(image_path) for file_name in file_names]
+image_files: list[str] = [os.path.join(dir_path, file_name) for dir_path, _, file_names in os.walk(image_path) for file_name in file_names]
 
 # select 80% of the images for training, 10% for validation, and 10% for testing
 train_ratio = 0.8
@@ -25,9 +24,9 @@ val_images = []
 test_images = []
 
 np.random.shuffle(image_files)
-train_images = image_files[:int(len(image_files) * train_ratio)]
-val_images = image_files[int(len(image_files) * train_ratio):int(len(image_files) * (train_ratio + val_ratio))]
-test_images = image_files[int(len(image_files) * (train_ratio + val_ratio)):]
+train_images: list[str] = image_files[:int(len(image_files) * train_ratio)]
+val_images: list[str] = image_files[int(len(image_files) * train_ratio):int(len(image_files) * (train_ratio + val_ratio))]
+test_images: list[str] = image_files[int(len(image_files) * (train_ratio + val_ratio)):]
 
 
 # Copy the images to the new directories

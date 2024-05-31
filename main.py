@@ -1,10 +1,12 @@
-from gui_agent.guiAgent import GuiAgent
+from guiAgent.guiAgent import GuiAgent
 
 
 def main() -> None:
     print("CAPTCHA Solver")
     guiAgent = GuiAgent()
-    # guiAgent.openBrowser("localhost")
+    guiAgent.openBrowser("localhost")
+    guiAgent.clickCheckbox()
+    # guiAgent.downloadAudio()
 
     
 
