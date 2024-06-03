@@ -4,6 +4,7 @@ from torch import Tensor
 import torch.optim as optim
 from torchvision import models, transforms, datasets
 from tqdm import tqdm
+from matplotlib import pyplot as plt
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -31,7 +32,62 @@ class TunedModel(nn.Module):
         x = self.model(x)
         return x
 
-
+class BaselineModel(nn.Module):
+    def __init__(self, num_classes: int):
+        super().__init__()
+        self.first_convolve = nn.Conv2d(3, 32, kernel_size=3, padding=1) # (3, 150, 150)
+        self.first_activation = nn.ReLU()
+        self.first_batchnorm = nn.BatchNorm2d(32)
+        self.second_convolve = nn.Conv2d(32, 64, kernel_size=3, padding=1)
+        self.second_activation = nn.ReLU()
+        self.second_batchnorm = nn.BatchNorm2d(64)
+        
+        self.pool1 = nn.MaxPool2d(2, 2) # (64, 75, 75)
+        
+        self.third_convolve = nn.Conv2d(64, 128, kernel_size=3, padding=1)
+        self.third_activation = nn.ReLU()
+        
+        self.pool2 = nn.MaxPool2d(2, 2) # (128, 37, 37)
+        
+        self.fourth_convolve = nn.Conv2d(128, 128, kernel_size=3, padding=1)
+        self.fourth_activation = nn.ReLU()
+        self.third_batchnorm = nn.BatchNorm2d(128)
+        self.fifth_convolve = nn.Conv2d(128, 128, kernel_size=3, padding=1)
+        self.fifth_activation = nn.ReLU()
+        
+        self.pool3 = nn.MaxPool2d(3, 3) # (128, 12, 12)
+        
+        self.fc1 = nn.Linear(128*12*12, 128)
+        self.fc1_activation = nn.ReLU()
+        self.fc2 = nn.Linear(128, num_classes)
+        
+    def forward(self, x) -> Tensor:
+        x = self.first_convolve(x)
+        x = self.first_activation(x)
+        x = self.first_batchnorm(x)
+        x = self.second_convolve(x)
+        x = self.second_activation(x)
+        x = self.second_batchnorm(x)
+        x = self.pool1(x)
+        
+        x = self.third_convolve(x)
+        x = self.third_activation(x)
+        x = self.pool2(x)
+        
+        x = self.fourth_convolve(x)
+        x = self.fourth_activation(x)
+        x = self.third_batchnorm(x)
+        x = self.fifth_convolve(x)
+        x = self.fifth_activation(x)
+        
+        x = self.pool3(x)
+        
+        x = x.view(-1, 128*12*12)
+        x = self.fc1(x)
+        x = self.fc1_activation(x)
+        x = self.fc2(x)
+        
+        return x
 
 
 def training_loop(model, criterion, optimizer, dataloaders, image_datasets, EPOCHS: int = 1000):
@@ -72,8 +128,16 @@ def training_loop(model, criterion, optimizer, dataloaders, image_datasets, EPOC
                 
                 outputs = model(inputs)
                 val_loss = criterion(outputs, labels)
+                
+                # debug print images
+                # for input, label, prediction in zip(inputs, labels, torch.argmax(outputs, dim=1)):
+                #     plt.imshow(input.permute(1, 2, 0).cpu().numpy())
+                #     plt.title(f"Label: {image_datasets['val'].classes[label]}, Prediction: {image_datasets['val'].classes[prediction]}")
+                #     plt.show()
+                
                 val_running_loss += val_loss.cpu().item() * inputs.size(0)
                 val_running_corrects += torch.sum(torch.argmax(outputs, dim=1) == labels).cpu().item()
+
         val_epoch_loss = val_running_loss / len(image_datasets['val'])
         val_epoch_acc = val_running_corrects / len(image_datasets['val'])
         val_accuracy_history.append(val_epoch_acc)

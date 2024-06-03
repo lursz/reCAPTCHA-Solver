@@ -167,3 +167,6 @@ processed_dataset/
 # Saved models
 model/saved_models/
 model/trainer.ipynb
+
+# CAPTCHA screenshots
+screenshots/
