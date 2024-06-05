@@ -26,24 +26,19 @@ class ImageProcessor:
         img_potential_background = (self.img == 255)[..., 0]
         img_background = img_background_seed
 
-        # Expand the background area iteratively until no further expansion is possible
+        # Reconstruction (expand the background area iteratively until no further expansion is possible)
         while True:
             img_new_background = cv2.dilate(img_background.astype(np.uint8), np.ones((3, 3), np.uint8)).astype(bool)
             img_new_background = img_new_background & img_potential_background
-            
             # Break if the background does not change
             if np.array_equal(img_new_background, img_background):
                 break
-            
             img_background = img_new_background
 
-        # Determine non-background areas
-        img_not_background = ~img_background
-
         # Identify connected components in the non-background areas
-        totalLabels, label_ids, values, centroids = cv2.connectedComponentsWithStats(img_not_background.astype(np.uint8))
+        totalLabels, label_ids, values, centroids = cv2.connectedComponentsWithStats(~img_background.astype(np.uint8))
 
-        # Find the largest connected component (excluding the background)
+        # Largest connected component
         largest_index = np.argmax(values[1:, cv2.CC_STAT_AREA]) + 1
         selected_area = label_ids == largest_index
 

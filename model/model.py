@@ -5,13 +5,17 @@ import torch.optim as optim
 from torchvision import models, transforms, datasets
 from tqdm import tqdm
 from matplotlib import pyplot as plt
+import torchsummary
+
+from abstracts import CustomModel
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
 
 
-class TunedModel(nn.Module):
+class TunedModel(nn.Module, CustomModel):
     def __init__(self, num_classes: int):
         super().__init__()
         self.resnet = models.resnet18(pretrained=True)
@@ -31,9 +35,9 @@ class TunedModel(nn.Module):
         x = self.resnet(x)
         x = self.model(x)
         return x
+    
 
-
-class BaselineModel(nn.Module): # 98% accuracy, 85% validation accuracy
+class BaselineModel(nn.Module, CustomModel): # 98% accuracy, 85% validation accuracy
     def __init__(self, num_classes: int):
         super().__init__()
         self.convolve1 = nn.Conv2d(3, 32, kernel_size=3, padding=1) # (3, 150, 150)
@@ -89,7 +93,7 @@ class BaselineModel(nn.Module): # 98% accuracy, 85% validation accuracy
         x = self.fc2(x)
         
         return x
-
+    
 
 def training_loop(model, criterion, optimizer, dataloaders, image_datasets, EPOCHS: int = 1000):
     accuracy_history: list = []

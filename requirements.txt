@@ -6,3 +6,4 @@ PyAutoGUI>=0.9.54
 python-xlib>=0.33
 tqdm>=4.66.4
 opencv-python>=4.9.0.80
+torchsummary>=1.5.1

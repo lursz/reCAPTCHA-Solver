@@ -52,8 +52,6 @@ data_dir: str = 'processed_dataset/images/'
 image_datasets = {x: datasets.ImageFolder(root=data_dir+x, transform=data_transforms[x]) for x in ['train', 'val', 'test']}
 dataloaders = {x: DataLoader(image_datasets[x], batch_size=20, shuffle=True) for x in ['train', 'val', 'test']}
 print("Data loaded")
-
-
 num_classes = len(image_datasets['train'].classes)
 
 # Define model
