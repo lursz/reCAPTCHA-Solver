@@ -32,28 +32,29 @@ class TunedModel(nn.Module):
         x = self.model(x)
         return x
 
-class BaselineModel(nn.Module):
+
+class BaselineModel(nn.Module): # 98% accuracy, 85% validation accuracy
     def __init__(self, num_classes: int):
         super().__init__()
-        self.first_convolve = nn.Conv2d(3, 32, kernel_size=3, padding=1) # (3, 150, 150)
-        self.first_activation = nn.ReLU()
-        self.first_batchnorm = nn.BatchNorm2d(32)
-        self.second_convolve = nn.Conv2d(32, 64, kernel_size=3, padding=1)
-        self.second_activation = nn.ReLU()
-        self.second_batchnorm = nn.BatchNorm2d(64)
+        self.convolve1 = nn.Conv2d(3, 32, kernel_size=3, padding=1) # (3, 150, 150)
+        self.activation1 = nn.ReLU()
+        self.batchnorm1 = nn.BatchNorm2d(32)
+        self.convolve2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
+        self.activation2 = nn.ReLU()
+        self.batchnorm2 = nn.BatchNorm2d(64)
         
         self.pool1 = nn.MaxPool2d(2, 2) # (64, 75, 75)
         
-        self.third_convolve = nn.Conv2d(64, 128, kernel_size=3, padding=1)
-        self.third_activation = nn.ReLU()
+        self.convolve3 = nn.Conv2d(64, 128, kernel_size=3, padding=1)
+        self.activation3 = nn.ReLU()
         
         self.pool2 = nn.MaxPool2d(2, 2) # (128, 37, 37)
         
-        self.fourth_convolve = nn.Conv2d(128, 128, kernel_size=3, padding=1)
-        self.fourth_activation = nn.ReLU()
-        self.third_batchnorm = nn.BatchNorm2d(128)
-        self.fifth_convolve = nn.Conv2d(128, 128, kernel_size=3, padding=1)
-        self.fifth_activation = nn.ReLU()
+        self.convolve4 = nn.Conv2d(128, 128, kernel_size=3, padding=1)
+        self.activation4 = nn.ReLU()
+        self.batchnorm3 = nn.BatchNorm2d(128)
+        self.convolve5 = nn.Conv2d(128, 128, kernel_size=3, padding=1)
+        self.activation5 = nn.ReLU()
         
         self.pool3 = nn.MaxPool2d(3, 3) # (128, 12, 12)
         
@@ -62,23 +63,23 @@ class BaselineModel(nn.Module):
         self.fc2 = nn.Linear(128, num_classes)
         
     def forward(self, x) -> Tensor:
-        x = self.first_convolve(x)
-        x = self.first_activation(x)
-        x = self.first_batchnorm(x)
-        x = self.second_convolve(x)
-        x = self.second_activation(x)
-        x = self.second_batchnorm(x)
+        x = self.convolve1(x)
+        x = self.activation1(x)
+        x = self.batchnorm1(x)
+        x = self.convolve2(x)
+        x = self.activation2(x)
+        x = self.batchnorm2(x)
         x = self.pool1(x)
         
-        x = self.third_convolve(x)
-        x = self.third_activation(x)
+        x = self.convolve3(x)
+        x = self.activation3(x)
         x = self.pool2(x)
         
-        x = self.fourth_convolve(x)
-        x = self.fourth_activation(x)
-        x = self.third_batchnorm(x)
-        x = self.fifth_convolve(x)
-        x = self.fifth_activation(x)
+        x = self.convolve4(x)
+        x = self.activation4(x)
+        x = self.batchnorm3(x)
+        x = self.convolve5(x)
+        x = self.activation5(x)
         
         x = self.pool3(x)
         

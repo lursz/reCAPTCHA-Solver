@@ -170,3 +170,6 @@ model/trainer.ipynb
 
 # CAPTCHA screenshots
 screenshots/
+
+# Random files
+imageProcessing/test.ipynb
