@@ -5,36 +5,36 @@ class GuiAgent:
     def __init__(self) -> None:
         pass
     
-    def getScreenResolution(self) -> tuple:
+    def get_screen_resolution(self) -> tuple:
         return pyautogui.size()
     
-    def getMousePosition(self) -> tuple:
+    def get_mouse_position(self) -> tuple:
         return pyautogui.position()
     
-    def openBrowser(self, url: str) -> None:
+    def open_browser(self, url: str) -> None:
         pyautogui.hotkey('win', 'r')
         pyautogui.typewrite('brave --incognito' + url)
         pyautogui.press('enter')
         print("Browser opened")
         
-    def closeTab(self) -> None:
+    def close_tab(self) -> None:
         pyautogui.hotkey('ctrl', 'w')
         
-    def clickImage(self, image: str) -> None:
+    def click_image(self, image: str) -> None:
         pyautogui.sleep(2)
         pyautogui.click(pyautogui.locateCenterOnScreen(image))
     
-    def clickCheckbox(self) -> None:
-        self.clickImage('guiAgent/images/captcha_checkbox.png')
+    def click_checkbox(self) -> None:
+        self.click_image('guiAgent/images/captcha_checkbox.png')
         pyautogui.click()
         
-    def downloadAudio(self) -> None:
-        self.clickImage('guiAgent/images/headphones.png')
-        self.clickImage('guiAgent/images/download.png')
+    def download_audio(self) -> None:
+        self.click_image('guiAgent/images/headphones.png')
+        self.click_image('guiAgent/images/download.png')
         
-    def takeScreenshot(self) -> str:
-        if not os.path.exists('screenshots'):
-            os.makedirs('screenshots')
-        filename = f'screenshots/screenshot{len(os.listdir("screenshots"))}.png'
+    def take_screenshot(self) -> str:
+        if not os.path.exists('guiAgent/screenshots'):
+            os.makedirs('guiAgent/screenshots')
+        filename = f'guiAgent/screenshots/screenshot{len(os.listdir("screenshots"))}.png'
         pyautogui.screenshot(filename).crop((50, 50, 1000, 1000)).save(filename)
         return filename

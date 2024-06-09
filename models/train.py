@@ -10,10 +10,9 @@ import numpy as np
 import glob
 from torch.utils.data import Dataset, DataLoader
 import cv2
-import visualizeData
+import datetime
 import model
 from model import training_loop, device
-import datetime
 
 print(f"Using device: {device}")
 
@@ -71,6 +70,6 @@ torch.save(resnet_model.state_dict(), f'saved_models/model_{datetime.datetime.no
 # torch.save(baseline_model.state_dict(), f'saved_models/model_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")}_{max_accuracy}.pt')
 
 # Plot training history
-visualizeData.plot_accuracy_from_history(history)#, path="accuracy_plot.png")
+resnet_model.plot_accuracy_from_history(history)#, path="accuracy_plot.png")
 
 

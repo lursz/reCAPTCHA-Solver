@@ -13,7 +13,7 @@ def main() -> None:
     mouse = MouseEngine()
     mouse.target = (300, 300)
     while True:
-        mouse.moveTheMouseOneStep()
+        mouse.move_the_mouse_one_step()
         # sleep(0.001)
     
 

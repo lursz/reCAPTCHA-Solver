@@ -13,7 +13,7 @@ class ImageProcessor:
         
         
     
-    def cropImageToCaptcha(self) -> np.ndarray:
+    def crop_image_to_captcha(self) -> np.ndarray:
 
         kernel_size = self.width // 3
 
@@ -66,7 +66,7 @@ class ImageProcessor:
         plt.imshow(self.img_cropped)
         plt.show()
 
-    def cropCaptchaPics(self):
+    def cut_captcha_pics(self):
         # background areas
         captcha_background = (self.img_cropped == 255)[..., 0]
         height, width = captcha_background.shape
@@ -93,14 +93,14 @@ class ImageProcessor:
         xs = np.array([xs] * height)
         ys = np.array([ys] * width).T
 
-        # Calculate the average y-coordinates for each horizontal line
+        # horizontal line
         average_ys_for_line = []
         for i in range(1, total_labels_horizontal):
             line = label_ids_horizontal == i
             interesting_ys = ys[line]
             average_ys_for_line.append(np.round(np.mean(interesting_ys)).astype(int))
 
-        # Calculate the average x-coordinates for each vertical line
+        # vertical line
         average_xs_for_line = []
         for i in range(1, total_labels_vertical):
             line = label_ids_vertical == i
@@ -112,7 +112,7 @@ class ImageProcessor:
 
         average_ys_for_line = average_ys_for_line[:-2]
 
-        # Define the header region based on sorted coordinates
+        # header region
         header_start_y = average_ys_for_line[0]
         header_end_y = average_ys_for_line[1]
         header_start_x = average_xs_for_line[0]
@@ -139,7 +139,7 @@ class ImageProcessor:
 
        
             
-    def polishingThePics(self):
+    def polishing_the_pics(self):
 
 
         # Process each piece to remove background lines

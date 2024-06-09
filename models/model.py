@@ -6,8 +6,9 @@ from torchvision import models, transforms, datasets
 from tqdm import tqdm
 from matplotlib import pyplot as plt
 import torchsummary
+from modelTools import ModelTools
 
-from abstracts import CustomModel
+
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -15,7 +16,7 @@ print(f"Using device: {device}")
 
 
 
-class TunedModel(nn.Module, CustomModel):
+class TunedModel(nn.Module, ModelTools): # 99% accuracy, 93% validation accuracy
     def __init__(self, num_classes: int):
         super().__init__()
         self.resnet = models.resnet18(pretrained=True)
@@ -37,7 +38,7 @@ class TunedModel(nn.Module, CustomModel):
         return x
     
 
-class BaselineModel(nn.Module, CustomModel): # 98% accuracy, 85% validation accuracy
+class BaselineModel(nn.Module, ModelTools): # 98% accuracy, 85% validation accuracy
     def __init__(self, num_classes: int):
         super().__init__()
         self.convolve1 = nn.Conv2d(3, 32, kernel_size=3, padding=1) # (3, 150, 150)
