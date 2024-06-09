@@ -1,6 +1,6 @@
 from pyautogui import sleep
 from guiAgent.guiAgent import GuiAgent
-from mouseEngine.MouseEngine import MouseEngine
+from mouseEngine.mouseEngine import MouseEngine
 
 
 def main() -> None:

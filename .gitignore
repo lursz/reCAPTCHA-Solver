@@ -164,6 +164,7 @@ cython_debug/
 # Machine Learning datasets
 model/kaggle/ 
 processed_dataset/
+**/mouse_data.json
 # Saved models
 **/saved_models/
 **/trainer.ipynb
