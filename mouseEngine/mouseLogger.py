@@ -34,6 +34,10 @@ class MouseLoggerApp:
         y1 = random.randint(0, self.canvas_height - size)
         x2 = x1 + size
         y2 = y1 + size
+        
+        self.rect_x = (x1 + x2) // 2
+        self.rect_y = (y1 + y2) // 2
+        
         return self.canvas.create_rectangle(x1, y1, x2, y2, fill=color)
         
     def start_logging(self, event):
@@ -55,13 +59,24 @@ class MouseLoggerApp:
         
         
     def log_mouse_position(self, event):
-        if self.logging:
-            self.current_mouse_data.append({
-                'timestamp': time.time(),
-                'x': pyautogui.position().x,
-                'y': pyautogui.position().y
-            })
-            self.root.after(10, lambda: self.log_mouse_position(event))
+        if self.logging:       
+            has_history = len(self.current_mouse_data) > 0
+            
+            current_x = (pyautogui.position().x - self.rect_x) / self.canvas_width
+            current_y = (pyautogui.position().y - self.rect_y) / self.canvas_height
+            
+            last_time_stamp = self.current_mouse_data[-1]['timestamp'] if has_history else time.time()
+            last_x = self.current_mouse_data[-1]['x'] if has_history else current_x
+            last_y = self.current_mouse_data[-1]['y'] if has_history else current_y
+            
+            if not has_history or last_x != current_x or last_y != current_y:
+                self.current_mouse_data.append({
+                    'timestamp': time.time(),
+                    'speed': ((current_x - last_x) ** 2 + (current_y - last_y) ** 2) ** 0.5 / (time.time() - last_time_stamp) if has_history else 0,
+                    'x': current_x,
+                    'y': current_y
+                })
+            self.root.after(1, lambda: self.log_mouse_position(event))
         
     def export_to_json_and_quit(self, events):
         with open('mouse_data.json', 'w') as file:
