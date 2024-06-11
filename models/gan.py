@@ -9,11 +9,6 @@ import numpy as np
 # Hyperparameters
 sequence_length = 100  # Adjust based on your data
 input_dim = 3  # timestamp, x, y
-hidden_dim = 256
-noise_dim = 100
-batch_size = 64
-num_epochs = 100
-learning_rate = 0.0002
 
 class MouseMovementDataset(Dataset):
     def __init__(self, data) -> None:
@@ -39,21 +34,30 @@ class MouseMovementDataset(Dataset):
 #         return x
     
 class Generator(nn.Module):
-    def __init__(self, noise_dim: int, hidden_dim: int, preprocess_dim: int) -> None:
+    def __init__(self, noise_dim: int, hidden_dim: int, preprocess_dim: int, sequence_len: int = 100) -> None:
         super(Generator, self).__init__()
-        self.lstm = nn.LSTM(noise_dim, hidden_dim, batch_first=True)
+        self.lstm = nn.LSTM(noise_dim, hidden_dim, num_layers=3)
         self.linear = nn.Linear(hidden_dim, preprocess_dim)
         self.activation = nn.ReLU()
-        self.linear2 = nn.Linear(preprocess_dim, 3) # click (should stop), speed, x, y, in respect to target
+        self.linear2 = nn.Linear(preprocess_dim, 3)  # click (should stop), speed, x, y, in respect to target
+        self.sequence_len = sequence_len
         
     def forward(self, x):
-        lstm_out, _ = self.lstm(x)
+        # Adjust input_tensor to have a batch dimension
+        input_tensor = torch.zeros((self.sequence_len, 3))  # Assuming a single batch for simplicity
         
-        print(lstm_out.shape)
-
+        hidden_size = 16  # Adjust based on your LSTM's hidden size
+        hx = torch.zeros(3, hidden_size)  # Now hx is 3-D
+        cx = torch.zeros(3, hidden_size)  # Now cx is 3-D
+        lstm_out, _ = self.lstm(input_tensor, (hx, cx))
+        
+        # print(lstm_out.shape, 'generator lstm')
+        
         x = self.linear(lstm_out)
         x = self.activation(x)
         x = self.linear2(x)
+        
+        # print(x.shape, 'generator')
         
         return x
             
@@ -61,20 +65,25 @@ class Generator(nn.Module):
 class Discriminator(nn.Module):
     def __init__(self, hidden_dim) -> None:
         super(Discriminator, self).__init__()
-        self.lstm = nn.LSTM(3, hidden_dim, batch_first=True)
+        self.lstm = nn.LSTM(3, hidden_dim, num_layers=3)
         self.flatten = nn.Flatten()
         self.dropout = nn.Dropout(0.2)
         self.linear = nn.Linear(hidden_dim, 1)
         self.sigmoid = nn.Sigmoid()
         
     def forward(self, x):
+        # print(x.shape, 'discriminator')
         lstm_out, _ = self.lstm(x)
-        last_output = lstm_out[:, -1, :]
+        # print(lstm_out.shape, 'discriminator lstm')
+        last_output = lstm_out[-1, :]
         
-        x = self.flatten(last_output)
-        x = self.dropout(x)
+        # print(last_output.shape)
+        
+        x = self.dropout(last_output)
         x = self.linear(x)
         x = self.sigmoid(x)
+        
+        # print(x.shape)
         
         return x
 
@@ -97,11 +106,14 @@ class GanTrainer:
         
         fake_sequence = self.generator(position)
         
+        # print(fake_sequence.shape, 'fake sequence before')
+        
         # Cut sequence when click is detected
         index = torch.argmax(fake_sequence[:, 0])
-        fake_sequence_cut = fake_sequence[:index][:, 1:]
+        fake_sequence_cut = fake_sequence[:index + 1, :]
         
-        real_sequence = real_sequence.unsqueeze(0)
+        # print(real_sequence.shape, 'real sequence')
+        # print(fake_sequence_cut.shape, 'fake sequence ', index.item())
         
         real_sequence_prediction = self.discriminator(real_sequence)
         fake_sequence_prediction = self.discriminator(fake_sequence_cut)
@@ -111,6 +123,8 @@ class GanTrainer:
         
         one = torch.clamp(one, 0.0, 1.0)
         zero = torch.clamp(zero, 0.0, 1.0)
+        
+        # print(real_sequence_prediction.shape, fake_sequence_prediction.shape, one.shape, zero.shape)
         
         real_loss = self.criterion(real_sequence_prediction, one)
         fake_loss = self.criterion(fake_sequence_prediction, zero)
@@ -131,7 +145,7 @@ class GanTrainer:
         
         # Cut sequence when click is detected
         index = torch.argmax(fake_sequence[:, 0])
-        fake_sequence_cut = fake_sequence[:index][:, 1:]
+        fake_sequence_cut = fake_sequence[:index + 1, :]
         
         fake_sequence_prediction = self.discriminator(fake_sequence_cut)
         one = torch.ones(1) - 0.1 * torch.rand(1)
@@ -148,7 +162,8 @@ class GanTrainer:
             d_loss_total = 0.0
             g_loss_total = 0.0
             
-            for real_sequence in self.dataloader: # make sure that the format for real_sequences is (sequence_length, 3) for (velocity, x, y) and x, y are relative to target
+            for real_sequence_batch in self.dataloader: # make sure that the format for real_sequences is (sequence_length, 3) for (velocity, x, y) and x, y are relative to target
+                real_sequence = real_sequence_batch[0]
                 d_loss_total += self.train_discriminator_step(real_sequence)
                 g_loss_total += self.train_generator_step()
             
@@ -169,8 +184,11 @@ data_np = np.array([df.values for df in data_dfs])
 dataset = MouseMovementDataset(data_np)
 dataloader = DataLoader(dataset, shuffle=True)
 
-generator = Generator(noise_dim, hidden_dim, hidden_dim)
+EPOCHS = 1000
+batch_size = 64
+hidden_dim = 16
+generator = Generator(3, hidden_dim, hidden_dim)
 discriminator = Discriminator(hidden_dim)
 
-gan_trainer = GanTrainer(generator, discriminator, dataloader, noise_dim, learning_rate)
-gan_trainer.train(num_epochs)
+gan_trainer = GanTrainer(generator, discriminator, dataloader, 3, 0.0002)
+gan_trainer.train(EPOCHS)
