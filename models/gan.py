@@ -20,42 +20,58 @@ class MouseMovementDataset(Dataset):
     def __getitem__(self, idx) -> torch.Tensor:
         return torch.tensor(self.data[idx], dtype=torch.float32)
 
-# class GeneratorVelocityMethod(nn.Module):
-#     def __init__(self, noise_dim: int, hidden_dim: int) -> None:
-#         super(GeneratorVelocityMethod, self).__init__()
-#         self.linear1 = nn.Linear(noise_dim, hidden_dim)
-#         self.activation = nn.ReLU()
-#         self.linear2 = nn.Linear(hidden_dim, 2) # returns Vx, Vy
-        
-#     def forward(self, x):
-#         x = self.linear1(x)
-#         x = self.activation(x)
-#         x = self.linear2(x)
-#         return x
     
 class Generator(nn.Module):
-    def __init__(self, noise_dim: int, hidden_dim: int, preprocess_dim: int, sequence_len: int = 100) -> None:
+    def __init__(self, noise_dim: int, hidden_dim: int, preprocess_dim: int, sequence_len: int = 50, num_layers_lstm: int = 6) -> None:
         super(Generator, self).__init__()
-        self.lstm = nn.LSTM(noise_dim, hidden_dim, num_layers=3)
-        self.linear = nn.Linear(hidden_dim, preprocess_dim)
+        self.num_layers_lstm = num_layers_lstm
+        self.lstm = nn.LSTM(noise_dim, hidden_dim, num_layers=num_layers_lstm)
+        self.linear1 = nn.Linear(hidden_dim, preprocess_dim)
         self.activation = nn.ReLU()
-        self.linear2 = nn.Linear(preprocess_dim, 3)  # click (should stop), speed, x, y, in respect to target
+        self.linear2 = nn.Linear(preprocess_dim, preprocess_dim)
+        self.activation2 = nn.ReLU()
+        self.linear3 = nn.Linear(preprocess_dim, preprocess_dim)
+        self.activation3 = nn.ReLU()
+        self.linear_click = nn.Linear(preprocess_dim, 1)
+        self.linear_position = nn.Linear(preprocess_dim, 2)  # click (should stop), x, y, in respect to target, speed
+        self.linear_speed = nn.Linear(preprocess_dim, 1)
         self.sequence_len = sequence_len
+        self.activation_click = nn.Sigmoid()
+        self.activation_position = nn.Tanh()
+        self.activation_speed = nn.ReLU()
         
     def forward(self, x):
         # Adjust input_tensor to have a batch dimension
         input_tensor = torch.zeros((self.sequence_len, 3))  # Assuming a single batch for simplicity
         
         hidden_size = 16  # Adjust based on your LSTM's hidden size
-        hx = torch.zeros(3, hidden_size)  # Now hx is 3-D
-        cx = torch.zeros(3, hidden_size)  # Now cx is 3-D
+        hx = torch.zeros(self.num_layers_lstm, hidden_size)  # Now hx is 3-D
+        cx = torch.zeros(self.num_layers_lstm, hidden_size)  # Now cx is 3-D
+        
+        hx[0, :2] = x
+        
         lstm_out, _ = self.lstm(input_tensor, (hx, cx))
         
-        # print(lstm_out.shape, 'generator lstm')
+        # print(lstm_out.cpu().detach().numpy()[:, 0], 'generator lstm')
         
-        x = self.linear(lstm_out)
+        x = self.linear1(lstm_out)
         x = self.activation(x)
+        
         x = self.linear2(x)
+        x = self.activation2(x)
+        
+        x = self.linear3(x)
+        x = self.activation3(x)
+        
+        click = self.linear_click(x)
+        position = self.linear_position(x)
+        speed = self.linear_speed(x)
+        
+        click = self.activation_click(click)
+        position = self.activation_position(position)
+        speed = self.activation_speed(speed)
+        
+        x = torch.cat((click, position, speed), dim=1)
         
         # print(x.shape, 'generator')
         
@@ -88,6 +104,13 @@ class Discriminator(nn.Module):
         return x
 
 class GanTrainer:
+    def __get_click_index(self, fake_prediction_click: torch.Tensor) -> int:
+        for i in range(fake_prediction_click.shape[0]):
+            if fake_prediction_click[i] > 0.5:
+                return i
+            
+        return len(fake_prediction_click) - 1
+    
     def __init__(self, generator, discriminator, dataloader, noise_dim, learning_rate) -> None:
         self.generator = generator
         self.discriminator = discriminator
@@ -95,7 +118,7 @@ class GanTrainer:
         self.noise_dim = noise_dim
         self.criterion = nn.BCELoss()
         self.optimizer_g = optim.Adam(self.generator.parameters(), lr=learning_rate)
-        self.optimizer_d = optim.Adam(self.discriminator.parameters(), lr=learning_rate)
+        self.optimizer_d = optim.Adam(self.discriminator.parameters(), lr=learning_rate*0.5)
         
         self.MAX_STEPS = 1000
     
@@ -109,14 +132,19 @@ class GanTrainer:
         # print(fake_sequence.shape, 'fake sequence before')
         
         # Cut sequence when click is detected
-        index = torch.argmax(fake_sequence[:, 0])
-        fake_sequence_cut = fake_sequence[:index + 1, :]
+        # index = self.__get_click_index(fake_sequence[:, 0])
+        # fake_sequence_cut = fake_sequence[:index + 1, 1:]
         
         # print(real_sequence.shape, 'real sequence')
         # print(fake_sequence_cut.shape, 'fake sequence ', index.item())
         
+        # print(real_sequence)
+        # print('---')
+        # print(fake_sequence)
+        # print('---')
+        
         real_sequence_prediction = self.discriminator(real_sequence)
-        fake_sequence_prediction = self.discriminator(fake_sequence_cut)
+        fake_sequence_prediction = self.discriminator(fake_sequence[:, 1:])
         
         one = torch.ones(1) - 0.1 * torch.rand(1)
         zero = 0.1 * torch.rand(1)
@@ -128,13 +156,19 @@ class GanTrainer:
         
         real_loss = self.criterion(real_sequence_prediction, one)
         fake_loss = self.criterion(fake_sequence_prediction, zero)
-        
+                
         loss = real_loss + fake_loss
         
         loss.backward()
         self.optimizer_d.step()
         
-        return loss.item()
+        correct_real = torch.sum(real_sequence_prediction > 0.5).item()
+        correct_fake = torch.sum(fake_sequence_prediction < 0.5).item()
+        
+        total_real = real_sequence_prediction.shape[0]
+        total_fake = fake_sequence_prediction.shape[0]
+        
+        return loss.item(), (correct_real + correct_fake) / (total_real + total_fake)
     
     def train_generator_step(self):
         position = torch.randn(2)
@@ -144,13 +178,17 @@ class GanTrainer:
         fake_sequence = self.generator(position)
         
         # Cut sequence when click is detected
-        index = torch.argmax(fake_sequence[:, 0])
-        fake_sequence_cut = fake_sequence[:index + 1, :]
+        # index = self.__get_click_index(fake_sequence[:, 0])
+        # fake_sequence_cut = fake_sequence[:index + 1, 1:]
         
-        fake_sequence_prediction = self.discriminator(fake_sequence_cut)
+        fake_sequence_prediction = self.discriminator(fake_sequence[:, 1:])
         one = torch.ones(1) - 0.1 * torch.rand(1)
         one = torch.clamp(one, 0.0, 1.0)
-        loss = self.criterion(fake_sequence_prediction, one)
+        
+        first_position_loss = torch.square(fake_sequence[0, 1:3] - position).mean()
+        last_position_loss = torch.square(fake_sequence[-1, 1:3]).mean()
+        
+        loss = self.criterion(fake_sequence_prediction, one) + first_position_loss + last_position_loss
         
         loss.backward()
         self.optimizer_g.step()
@@ -158,17 +196,23 @@ class GanTrainer:
         return loss.item()
     
     def train(self, num_epochs) -> None:
+        N = 1
+        
         for epoch in range(num_epochs):
             d_loss_total = 0.0
             g_loss_total = 0.0
+            d_acc_total = 0.0
             
             for real_sequence_batch in self.dataloader: # make sure that the format for real_sequences is (sequence_length, 3) for (velocity, x, y) and x, y are relative to target
                 real_sequence = real_sequence_batch[0]
-                d_loss_total += self.train_discriminator_step(real_sequence)
-                g_loss_total += self.train_generator_step()
+                d_loss, d_acc = self.train_discriminator_step(real_sequence)
+                d_loss_total += d_loss
+                d_acc_total += d_acc
+                
+                for _ in range(N):
+                    g_loss_total += self.train_generator_step()
             
-            print(f"Epoch [{epoch+1}/{num_epochs}]  Loss D: {d_loss_total/len(self.dataloader):.4f}, Loss G: {g_loss_total/len(self.dataloader):.4f}")
-
+            print(f"Epoch [{epoch+1}/{num_epochs}]  Loss D: {d_loss_total/len(self.dataloader):.4f}, Loss G: {g_loss_total/(len(self.dataloader) * N):.4f}, Accuracy D: {d_acc_total/len(self.dataloader):.4f}")
 
 
 data = []
@@ -177,9 +221,9 @@ with open('mouseEngine/mouse_data.json') as f:
     
 data_dfs = [pd.DataFrame(d)[['x', 'y', 'speed']] for d in data]
 
-# print(data_dfs[0])
-
 data_np = np.array([df.values for df in data_dfs])
+
+print([len(d) for d in data_np])
     
 dataset = MouseMovementDataset(data_np)
 dataloader = DataLoader(dataset, shuffle=True)
@@ -190,5 +234,5 @@ hidden_dim = 16
 generator = Generator(3, hidden_dim, hidden_dim)
 discriminator = Discriminator(hidden_dim)
 
-gan_trainer = GanTrainer(generator, discriminator, dataloader, 3, 0.0002)
+gan_trainer = GanTrainer(generator, discriminator, dataloader, 3, 0.00001)
 gan_trainer.train(EPOCHS)
