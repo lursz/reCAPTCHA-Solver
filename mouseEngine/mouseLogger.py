@@ -3,6 +3,7 @@ import json
 import time
 import random
 import pyautogui
+from threading import Timer
 
 class MouseLoggerApp:
     def __init__(self, root):
@@ -41,12 +42,16 @@ class MouseLoggerApp:
         return self.canvas.create_rectangle(x1, y1, x2, y2, fill=color)
         
     def start_logging(self, event):
+        if self.logging:
+            return
+        
         self.logging = True
-        self.log_mouse_position(event)
+        self.log_mouse_position(event, len(self.mouse_data))
         
     def stop_logging(self, event):
         self.logging = False
         self.mouse_data.append(self.current_mouse_data)
+        self.current_mouse_data = []
         
         self.canvas.delete(self.green_square)
         self.canvas.delete(self.red_square)
@@ -58,8 +63,9 @@ class MouseLoggerApp:
         self.canvas.tag_bind(self.red_square, "<Button-1>", self.stop_logging)
         
         
-    def log_mouse_position(self, event):
+    def log_mouse_position(self, event, index):
         if self.logging:       
+            # print("Logging ", time.time())
             has_history = len(self.current_mouse_data) > 0
             
             current_x = (pyautogui.position().x - self.rect_x) / self.canvas_width
@@ -76,7 +82,9 @@ class MouseLoggerApp:
                     'x': current_x,
                     'y': current_y
                 })
-            self.root.after(1, lambda: self.log_mouse_position(event))
+            
+            if index == len(self.mouse_data):
+                Timer(0.01, lambda: self.log_mouse_position(event, index)).start()
         
     def export_to_json_and_quit(self, events):
         with open('mouse_data.json', 'w') as file:

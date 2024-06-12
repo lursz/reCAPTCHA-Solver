@@ -118,7 +118,7 @@ class GanTrainer:
         self.noise_dim = noise_dim
         self.criterion = nn.BCELoss()
         self.optimizer_g = optim.Adam(self.generator.parameters(), lr=learning_rate)
-        self.optimizer_d = optim.Adam(self.discriminator.parameters(), lr=learning_rate*0.5)
+        self.optimizer_d = optim.Adam(self.discriminator.parameters(), lr=learning_rate)
         
         self.MAX_STEPS = 1000
     
@@ -221,7 +221,7 @@ with open('mouseEngine/mouse_data.json') as f:
     
 data_dfs = [pd.DataFrame(d)[['x', 'y', 'speed']] for d in data]
 
-data_np = np.array([df.values for df in data_dfs])
+data_np = [df.values for df in data_dfs]
 
 print([len(d) for d in data_np])
     
@@ -234,5 +234,8 @@ hidden_dim = 16
 generator = Generator(3, hidden_dim, hidden_dim)
 discriminator = Discriminator(hidden_dim)
 
-gan_trainer = GanTrainer(generator, discriminator, dataloader, 3, 0.00001)
+gan_trainer = GanTrainer(generator, discriminator, dataloader, 3, 0.0001)
 gan_trainer.train(EPOCHS)
+
+torch.save(generator.state_dict(), 'generator.pth')
+

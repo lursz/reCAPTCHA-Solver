@@ -11,7 +11,15 @@ class ImageProcessor:
         self.header_img = None
         self.list_of_pics = None
         
+    def show_image(self) -> None:
+        plt.imshow(self.img)
+        plt.show()
         
+    def process_image(self) -> list[np.ndarray]:
+        self.crop_image_to_captcha()
+        self.cut_captcha_pics()
+        self.polishing_the_pics()
+        return self.list_of_pics
     
     def crop_image_to_captcha(self) -> np.ndarray:
 

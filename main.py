@@ -1,15 +1,22 @@
 from pyautogui import sleep
 from guiAgent.guiAgent import GuiAgent
+from imageProcessing.imageProcessor import ImageProcessor
 from mouseEngine.mouseEngine import MouseEngine
 
 
 def main() -> None:
     print("CAPTCHA Solver")
-    # guiAgent = GuiAgent()
-    # guiAgent.openBrowser("localhost")
-    # guiAgent.clickCheckbox()
-    # guiAgent.takeScreenshot()
-    # guiAgent.closeTab()
+    gui_agent = GuiAgent()
+    gui_agent.openBrowser("localhost")
+    gui_agent.clickCheckbox()
+    gui_agent.takeScreenshot()
+    gui_agent.closeTab()
+    
+    image_processor = ImageProcessor("screenshot.png")
+    image_processor.show_image()
+    list_of_img =  image_processor.process_image()
+    
+    
     mouse = MouseEngine()
     mouse.target = (300, 300)
     while True:
