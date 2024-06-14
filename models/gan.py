@@ -6,19 +6,22 @@ from torch.utils.data import DataLoader, Dataset
 import pandas as pd
 import numpy as np
 
+# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cpu')
+
 # Hyperparameters
 sequence_length = 100  # Adjust based on your data
 input_dim = 3  # timestamp, x, y
 
 class MouseMovementDataset(Dataset):
     def __init__(self, data) -> None:
-        self.data = data
+        self.data = [torch.tensor(d, dtype=torch.float32).to(device) for d in data]
     
     def __len__(self) -> int:
         return len(self.data)
     
     def __getitem__(self, idx) -> torch.Tensor:
-        return torch.tensor(self.data[idx], dtype=torch.float32)
+        return self.data[idx]
 
     
 class Generator(nn.Module):
@@ -28,10 +31,6 @@ class Generator(nn.Module):
         self.lstm = nn.LSTM(noise_dim, hidden_dim, num_layers=num_layers_lstm)
         self.linear1 = nn.Linear(hidden_dim, preprocess_dim)
         self.activation = nn.ReLU()
-        self.linear2 = nn.Linear(preprocess_dim, preprocess_dim)
-        self.activation2 = nn.ReLU()
-        self.linear3 = nn.Linear(preprocess_dim, preprocess_dim)
-        self.activation3 = nn.ReLU()
         self.linear_click = nn.Linear(preprocess_dim, 1)
         self.linear_position = nn.Linear(preprocess_dim, 2)  # click (should stop), x, y, in respect to target, speed
         self.linear_speed = nn.Linear(preprocess_dim, 1)
@@ -42,12 +41,13 @@ class Generator(nn.Module):
         
     def forward(self, x):
         # Adjust input_tensor to have a batch dimension
-        input_tensor = torch.zeros((self.sequence_len, 3))  # Assuming a single batch for simplicity
+        input_tensor = torch.zeros((self.sequence_len, 3)).to(device)  # Assuming a single batch for simplicity
         
         hidden_size = 16  # Adjust based on your LSTM's hidden size
-        hx = torch.zeros(self.num_layers_lstm, hidden_size)  # Now hx is 3-D
-        cx = torch.zeros(self.num_layers_lstm, hidden_size)  # Now cx is 3-D
+        hx = torch.zeros(self.num_layers_lstm, hidden_size).to(device)  # Now hx is 3-D
+        cx = torch.zeros(self.num_layers_lstm, hidden_size).to(device)  # Now cx is 3-D
         
+        cx[0, :2] = x
         hx[0, :2] = x
         
         lstm_out, _ = self.lstm(input_tensor, (hx, cx))
@@ -56,12 +56,6 @@ class Generator(nn.Module):
         
         x = self.linear1(lstm_out)
         x = self.activation(x)
-        
-        x = self.linear2(x)
-        x = self.activation2(x)
-        
-        x = self.linear3(x)
-        x = self.activation3(x)
         
         click = self.linear_click(x)
         position = self.linear_position(x)
@@ -118,12 +112,12 @@ class GanTrainer:
         self.noise_dim = noise_dim
         self.criterion = nn.BCELoss()
         self.optimizer_g = optim.Adam(self.generator.parameters(), lr=learning_rate)
-        self.optimizer_d = optim.Adam(self.discriminator.parameters(), lr=learning_rate)
+        self.optimizer_d = optim.Adam(self.discriminator.parameters(), lr=learning_rate*0.4)
         
         self.MAX_STEPS = 1000
     
     def train_discriminator_step(self, real_sequence: torch.Tensor):
-        position = torch.randn(2)
+        position = (torch.rand(2) * 2 - 1).to(device)
         
         self.optimizer_d.zero_grad()
         
@@ -146,8 +140,8 @@ class GanTrainer:
         real_sequence_prediction = self.discriminator(real_sequence)
         fake_sequence_prediction = self.discriminator(fake_sequence[:, 1:])
         
-        one = torch.ones(1) - 0.1 * torch.rand(1)
-        zero = 0.1 * torch.rand(1)
+        one = (torch.ones(1) - 0.1 * torch.rand(1)).to(device)
+        zero = 0.1 * torch.rand(1).to(device)
         
         one = torch.clamp(one, 0.0, 1.0)
         zero = torch.clamp(zero, 0.0, 1.0)
@@ -171,7 +165,7 @@ class GanTrainer:
         return loss.item(), (correct_real + correct_fake) / (total_real + total_fake)
     
     def train_generator_step(self):
-        position = torch.randn(2)
+        position = (torch.rand(2) * 2 - 1).to(device)
         
         self.optimizer_g.zero_grad()
         
@@ -182,8 +176,8 @@ class GanTrainer:
         # fake_sequence_cut = fake_sequence[:index + 1, 1:]
         
         fake_sequence_prediction = self.discriminator(fake_sequence[:, 1:])
-        one = torch.ones(1) - 0.1 * torch.rand(1)
-        one = torch.clamp(one, 0.0, 1.0)
+        one = (torch.ones(1) - 0.1 * torch.rand(1)).to(device)
+        one = torch.clamp(one, 0.0, 1.0).to(device)
         
         first_position_loss = torch.square(fake_sequence[0, 1:3] - position).mean()
         last_position_loss = torch.square(fake_sequence[-1, 1:3]).mean()
@@ -195,6 +189,14 @@ class GanTrainer:
         
         return loss.item()
     
+    def print_fake_sequence(self):
+        position = (torch.rand(2) * 2 - 1).to(device)
+        
+        fake_sequence = self.generator(position)
+        
+        print(f"Starting position: {position.cpu().detach().numpy()}")
+        print(fake_sequence.cpu().detach().numpy())
+    
     def train(self, num_epochs) -> None:
         N = 1
         
@@ -202,6 +204,7 @@ class GanTrainer:
             d_loss_total = 0.0
             g_loss_total = 0.0
             d_acc_total = 0.0
+            gen_train_steps = 0
             
             for real_sequence_batch in self.dataloader: # make sure that the format for real_sequences is (sequence_length, 3) for (velocity, x, y) and x, y are relative to target
                 real_sequence = real_sequence_batch[0]
@@ -209,33 +212,39 @@ class GanTrainer:
                 d_loss_total += d_loss
                 d_acc_total += d_acc
                 
-                for _ in range(N):
+                extra_steps = 2 * (d_acc > 0.96) + 1 * (d_acc > 0.9) + 1 * (d_acc > 0.8)
+                
+                for _ in range(N + extra_steps):
                     g_loss_total += self.train_generator_step()
+                    gen_train_steps += 1
             
-            print(f"Epoch [{epoch+1}/{num_epochs}]  Loss D: {d_loss_total/len(self.dataloader):.4f}, Loss G: {g_loss_total/(len(self.dataloader) * N):.4f}, Accuracy D: {d_acc_total/len(self.dataloader):.4f}")
+            self.print_fake_sequence()
+            print(f"Epoch [{epoch+1}/{num_epochs}]  Loss D: {d_loss_total/len(self.dataloader):.4f}, Loss G: {g_loss_total/gen_train_steps:.4f}, Accuracy D: {d_acc_total/len(self.dataloader):.4f}")
 
 
 data = []
 with open('mouseEngine/mouse_data.json') as f:
     data = json.load(f)
     
-data_dfs = [pd.DataFrame(d)[['x', 'y', 'speed']] for d in data]
+    
+data_dfs = [pd.DataFrame(d)[['x', 'y', 'speed']] for d in data if len(d) > 0]
 
 data_np = [df.values for df in data_dfs]
 
-print([len(d) for d in data_np])
+# print([len(d) for d in data_np])
     
 dataset = MouseMovementDataset(data_np)
 dataloader = DataLoader(dataset, shuffle=True)
 
-EPOCHS = 1000
+EPOCHS = 10000
 batch_size = 64
 hidden_dim = 16
-generator = Generator(3, hidden_dim, hidden_dim)
-discriminator = Discriminator(hidden_dim)
+generator = Generator(3, hidden_dim, hidden_dim).to(device)
+discriminator = Discriminator(hidden_dim).to(device)
 
-gan_trainer = GanTrainer(generator, discriminator, dataloader, 3, 0.0001)
+gan_trainer = GanTrainer(generator, discriminator, dataloader, 3, 0.00001)
 gan_trainer.train(EPOCHS)
 
 torch.save(generator.state_dict(), 'generator.pth')
+torch.save(discriminator.state_dict(), 'discriminator.pth')
 
