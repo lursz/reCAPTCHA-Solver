@@ -13,7 +13,7 @@ class GuiAgent:
     
     def open_browser(self, url: str) -> None:
         pyautogui.hotkey('win', 'r')
-        pyautogui.typewrite('brave --incognito' + url)
+        pyautogui.typewrite('brave --incognito ' + url)
         pyautogui.press('enter')
         print("Browser opened")
         
@@ -32,9 +32,10 @@ class GuiAgent:
         self.click_image('guiAgent/images/headphones.png')
         self.click_image('guiAgent/images/download.png')
         
-    def take_screenshot(self) -> str:
-        if not os.path.exists('guiAgent/screenshots'):
-            os.makedirs('guiAgent/screenshots')
-        filename = f'guiAgent/screenshots/screenshot{len(os.listdir("screenshots"))}.png'
+    def take_screenshot(self, path: str) -> str:
+        if not os.path.exists(path):
+            os.makedirs(path)
+        # filename = f'{path}{len(os.listdir(path))}.png'
+        filename = f'{path}/screenshot.png'
         pyautogui.screenshot(filename).crop((50, 50, 1000, 1000)).save(filename)
         return filename

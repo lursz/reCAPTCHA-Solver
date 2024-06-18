@@ -42,6 +42,10 @@ class MouseEngine:
         
         
         
+    def move_mouse_following_path(self, path: list) -> None:
+        for point in path:
+            pyautogui.moveTo(*point)
+            pyautogui.sleep(0.001)
         
         
         

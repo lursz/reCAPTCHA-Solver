@@ -1,4 +1,5 @@
 import cv2
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -6,22 +7,25 @@ class ImageProcessor:
     def __init__(self, path: str) -> None:
         self.path = path
         self.img = cv2.imread(path)
-        self.height, self.width, _ = self.img.shape
         self.img_cropped = None
         self.header_img = None
         self.list_of_pics = None
+        self.height = None 
+        self.width = None
         
     def show_image(self) -> None:
         plt.imshow(self.img)
         plt.show()
         
-    def process_image(self) -> list[np.ndarray]:
+    def process_captcha_image(self, output_folder: str) -> list[np.ndarray]:
         self.crop_image_to_captcha()
         self.cut_captcha_pics()
         self.polishing_the_pics()
+        self.save_all_pics(output_folder)
         return self.list_of_pics
     
     def crop_image_to_captcha(self) -> np.ndarray:
+        self.height, self.width, _ = self.img.shape
 
         kernel_size = self.width // 3
 
@@ -42,13 +46,26 @@ class ImageProcessor:
             if np.array_equal(img_new_background, img_background):
                 break
             img_background = img_new_background
+            
+        # plt.imshow(img_background)
+        # plt.show()
+        
+        img_foreground = ~img_background
 
         # Identify connected components in the non-background areas
-        totalLabels, label_ids, values, centroids = cv2.connectedComponentsWithStats(~img_background.astype(np.uint8))
+        totalLabels, label_ids, values, centroids = cv2.connectedComponentsWithStats(img_foreground.astype(np.uint8))
+        
+        # plt.imshow(label_ids)
+        # plt.show()
 
         # Largest connected component
         largest_index = np.argmax(values[1:, cv2.CC_STAT_AREA]) + 1
         selected_area = label_ids == largest_index
+        
+        print(largest_index)
+        
+        # plt.imshow(selected_area)
+        # plt.show()
 
         xs = np.linspace(0, self.width - 1, self.width, dtype=int)
         ys = np.linspace(0, self.height - 1, self.height, dtype=int)
@@ -67,12 +84,14 @@ class ImageProcessor:
 
         interesting_xs = xs[selected_area & (ys == max_y)]
         max_x = np.max(interesting_xs)
+        
+        print(min_x, max_x, min_y, max_y)
 
         # Crop the image to the bounding box of the largest connected component
         self.img_cropped = self.img[min_y:max_y, min_x:max_x]
 
-        plt.imshow(self.img_cropped)
-        plt.show()
+        # plt.imshow(self.img_cropped)
+        # plt.show()
 
     def cut_captcha_pics(self):
         # background areas
@@ -90,6 +109,12 @@ class ImageProcessor:
         # Extract horizontal and vertical lines from eroded images
         horizontal_lines = captcha_eroded_horizontal == 1
         vertical_lines = captcha_eroded_vertical == 1
+        
+        # plt.imshow(horizontal_lines)
+        # plt.show()
+        
+        # plt.imshow(vertical_lines)
+        # plt.show()
 
         # Identify connected components in the horizontal and vertical lines
         total_labels_horizontal, label_ids_horizontal, values_horizontal, centroids_horizontal = cv2.connectedComponentsWithStats(horizontal_lines.astype(np.uint8))
@@ -141,9 +166,9 @@ class ImageProcessor:
                 piece = self.img_cropped[start_y:end_y, start_x:end_x]
                 self.list_of_pics.append(piece)
                 
-        for pic in self.list_of_pics:
-            plt.imshow(pic)
-            plt.show()
+        # for pic in self.list_of_pics:
+        #     plt.imshow(pic)
+        #     plt.show()
 
        
             
@@ -178,6 +203,15 @@ class ImageProcessor:
             processed_pieces.append(processed_piece)
 
         # Display each processed piece
-        for piece in processed_pieces:
-            plt.imshow(piece)
-            plt.show()
+        # for piece in processed_pieces:
+        #     plt.imshow(piece)
+        #     plt.show()
+            
+            
+    def save_all_pics(self, path: str) -> None:
+        if not os.path.exists(path):
+            os.makedirs(path)
+            
+        cv2.imwrite(f"{path}/header.png", self.header_img)
+        for i, pic in enumerate(self.list_of_pics):
+            cv2.imwrite(f"{path}/pic_{i}.png", pic)

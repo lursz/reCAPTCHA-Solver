@@ -169,9 +169,11 @@ processed_dataset/
 # Saved models
 **/saved_models/
 **/trainer.ipynb
+*.pth
 
 # CAPTCHA screenshots
 screenshots/
+imageProcessing/captcha_pics/
 
 # Random files
 imageProcessing/test.ipynb

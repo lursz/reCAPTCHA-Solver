@@ -220,6 +220,10 @@ class GanTrainer:
             
             self.print_fake_sequence()
             print(f"Epoch [{epoch+1}/{num_epochs}]  Loss D: {d_loss_total/len(self.dataloader):.4f}, Loss G: {g_loss_total/gen_train_steps:.4f}, Accuracy D: {d_acc_total/len(self.dataloader):.4f}")
+            
+            if epoch % 1000 == 0:
+                torch.save(self.generator.state_dict(), f'generator_{epoch}.pth')
+                torch.save(self.discriminator.state_dict(), f'discriminator_{epoch}.pth')
 
 
 data = []

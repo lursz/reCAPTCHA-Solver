@@ -6,7 +6,7 @@ from torchvision import models, transforms, datasets
 from tqdm import tqdm
 from matplotlib import pyplot as plt
 import torchsummary
-from modelTools import ModelTools
+from models.modelTools import ModelTools
 
 
 
