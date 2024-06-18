@@ -62,7 +62,7 @@ class ImageProcessor:
         largest_index = np.argmax(values[1:, cv2.CC_STAT_AREA]) + 1
         selected_area = label_ids == largest_index
         
-        print(largest_index)
+        # print(largest_index)
         
         # plt.imshow(selected_area)
         # plt.show()
@@ -85,7 +85,7 @@ class ImageProcessor:
         interesting_xs = xs[selected_area & (ys == max_y)]
         max_x = np.max(interesting_xs)
         
-        print(min_x, max_x, min_y, max_y)
+        # print(min_x, max_x, min_y, max_y)
 
         # Crop the image to the bounding box of the largest connected component
         self.img_cropped = self.img[min_y:max_y, min_x:max_x]

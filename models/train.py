@@ -53,23 +53,26 @@ dataloaders = {x: DataLoader(image_datasets[x], batch_size=20, shuffle=True) for
 print("Data loaded")
 num_classes = len(image_datasets['train'].classes)
 
-# Define model
-resnet_model = model.TunedModel(num_classes).to(device)
-# baseline_model = model.BaselineModel(num_classes).to(device)
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(resnet_model.parameters(), lr=0.001)
-# optimizer = optim.Adam(baseline_model.parameters(), lr=0.001)
 
-# Train model
-EPOCHS = 20
-history = training_loop(resnet_model, criterion, optimizer, dataloaders, image_datasets, EPOCHS)
-# history = training_loop(baseline_model, criterion, optimizer, dataloaders, image_datasets, EPOCHS)
-# Save model
-max_accuracy = np.int32(max(history['val_accuracy']) * 100)
-torch.save(resnet_model.state_dict(), f'saved_models/model_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")}_{max_accuracy}.pt')
-# torch.save(baseline_model.state_dict(), f'saved_models/model_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")}_{max_accuracy}.pt')
+if __name__ == '__main__':
 
-# Plot training history
-resnet_model.plot_accuracy_from_history(history)#, path="accuracy_plot.png")
+    
+    # Define model
+    resnet_model = model.TunedModel(num_classes).to(device)
+    # baseline_model = model.BaselineModel(num_classes).to(device)
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(resnet_model.parameters(), lr=0.001)
+    # optimizer = optim.Adam(baseline_model.parameters(), lr=0.001)
+
+    # Train model
+    EPOCHS = 20
+    history = training_loop(resnet_model, criterion, optimizer, dataloaders, image_datasets, EPOCHS)
+    # history = training_loop(baseline_model, criterion, optimizer, dataloaders, image_datasets, EPOCHS)
+    # Save model
+    max_accuracy = np.int32(max(history['val_accuracy']) * 100)
+    torch.save(resnet_model.state_dict(), f'saved_models/model_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")}_{max_accuracy}.pt')
+    # torch.save(baseline_model.state_dict(), f'saved_models/model_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")}_{max_accuracy}.pt')
+    # Plot training history
+    resnet_model.plot_accuracy_from_history(history)#, path="accuracy_plot.png")
 
 

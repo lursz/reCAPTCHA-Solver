@@ -226,29 +226,30 @@ class GanTrainer:
                 torch.save(self.discriminator.state_dict(), f'discriminator_{epoch}.pth')
 
 
-data = []
-with open('mouseEngine/mouse_data.json') as f:
-    data = json.load(f)
+if __name__ == '__main__':
+    data = []
+    with open('mouseEngine/mouse_data.json') as f:
+        data = json.load(f)
+        
+        
+    data_dfs = [pd.DataFrame(d)[['x', 'y', 'speed']] for d in data if len(d) > 0]
+
+    data_np = [df.values for df in data_dfs]
+
+    # print([len(d) for d in data_np])
+        
+    dataset = MouseMovementDataset(data_np)
+    dataloader = DataLoader(dataset, shuffle=True)
+
+    EPOCHS = 10000
+    batch_size = 64
+    hidden_dim = 16
+    generator = Generator(3, hidden_dim, hidden_dim).to(device)
+    discriminator = Discriminator(hidden_dim).to(device)
+
+    gan_trainer = GanTrainer(generator, discriminator, dataloader, 3, 0.00001)
+    gan_trainer.train(EPOCHS)
+
+    torch.save(generator.state_dict(), 'generator.pth')
+    torch.save(discriminator.state_dict(), 'discriminator.pth')
     
-    
-data_dfs = [pd.DataFrame(d)[['x', 'y', 'speed']] for d in data if len(d) > 0]
-
-data_np = [df.values for df in data_dfs]
-
-# print([len(d) for d in data_np])
-    
-dataset = MouseMovementDataset(data_np)
-dataloader = DataLoader(dataset, shuffle=True)
-
-EPOCHS = 10000
-batch_size = 64
-hidden_dim = 16
-generator = Generator(3, hidden_dim, hidden_dim).to(device)
-discriminator = Discriminator(hidden_dim).to(device)
-
-gan_trainer = GanTrainer(generator, discriminator, dataloader, 3, 0.00001)
-gan_trainer.train(EPOCHS)
-
-torch.save(generator.state_dict(), 'generator.pth')
-torch.save(discriminator.state_dict(), 'discriminator.pth')
-

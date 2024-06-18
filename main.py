@@ -7,7 +7,6 @@ from models.gan import Generator
 from models.model import TunedModel
 from mouseEngine.mouseEngine import MouseEngine
 from torchvision import models, transforms, datasets
-from models.train import num_classes
 
 
 
@@ -28,55 +27,71 @@ def main() -> None:
     # image_processor.show_image()
     list_of_img =  image_processor.process_captcha_image('imageProcessing/captcha_pics')
     
-    # ocr = OCR()
-    # list_of_words = ocr.ocr_from_image('imageProcessing/captcha_pics/header.png')
-    # header_label = list_of_words[-1]
+    ocr = OCR()
+    header_label = ocr.ocr_from_image('imageProcessing/captcha_pics/header.png')
+    header_label = header_label.lower()
+    header_label = header_label if header_label[-1] != 's' else header_label[:-1]
 
     # IMAGE MODEL 
-    pic_model = TunedModel(num_classes)
-    pic_model.load_state_dict('models/captcha_model.pth')
+    pic_model = TunedModel(13)
+    pic_model.load_state_dict(torch.load('models/saved_models/captcha_model.pt', map_location=torch.device('cpu')))
+    pic_model.eval()
 
     # apply this to pics
-    data_transforms = {
-    'val': transforms.Compose([
+    data_transform = transforms.Compose([
+        transforms.ToTensor(),
         transforms.Resize(150),
         transforms.CenterCrop(150),
-        transforms.ToTensor(),
-        # lambda x: x.to(device),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    ]),
-    'test': transforms.Compose([
-        transforms.Resize(150),
-        transforms.CenterCrop(150),
-        transforms.ToTensor(),
         # lambda x: x.to(device),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
+    
+    label_to_index = {
+        'bicycle': 0,
+        'bridge': 1,
+        'bus': 2,
+        'car': 3,
+        'chimney': 4,
+        'crosswalk': 5,
+        'hydrant': 6,
+        'motorcycle': 7,
+        'mountain': 8,
+        'other': 9,
+        'palm': 10,
+        'stair': 11,
+        'traffic light': 12
     }
+    
     tensor_list = []
     for img in list_of_img:
-        tensor_list.append(data_transforms['test'](img))
+        tensor_list.append(data_transform(img))
+        
+    TEMP = 1.0
+    THRESHOLD = 0.7
+        
+    label_index = label_to_index[header_label]
+    print(header_label, label_index)
         
     list_of_predictions = []
     for tensor in tensor_list:
-        pred = pic_model.predict(tensor)
-        list_of_predictions.append(pred)
+        pred = pic_model(tensor.unsqueeze(0))[0]
+        pred = torch.nn.functional.softmax(pred / TEMP).detach().numpy()
+        should_select = pred[label_index] > THRESHOLD
+        list_of_predictions.append(should_select)
         
     print(list_of_predictions)
     
     # MOUSE ENGINE
     hidden_dim = 16
     mouse_model = Generator(3, hidden_dim, hidden_dim)
-    mouse_model.load_state_dict('models/mouse_model.pth')
+    mouse_model.load_state_dict(torch.load('generator.pth', map_location=torch.device('cpu')))
+    mouse_model.eval()
     
-    current_position = gui_agent.get_mouse_position()
-    target_position = (300, 300)
+    current_position = torch.Tensor(gui_agent.get_mouse_position())
+    target_position = torch.Tensor([300, 300])
     
     model_target_position = current_position - target_position
-    # change to tensor
-    model_target_position = torch.tensor(model_target_position)
-
-    path = mouse_model(model_target_position)[0, :, 1:3].detach().numpy()
+    path = mouse_model(model_target_position)[:, 1:3].detach().numpy()
     
     
     
