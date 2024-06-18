@@ -1,5 +1,6 @@
 import os
 import pyautogui
+import numpy as np
 
 class GuiAgent:
     def __init__(self) -> None:
@@ -39,3 +40,6 @@ class GuiAgent:
         filename = f'{path}/screenshot.png'
         pyautogui.screenshot(filename).crop((50, 50, 1000, 1000)).save(filename)
         return filename
+    
+    def locate_on_screen(self, image: np.ndarray) -> tuple:
+        return pyautogui.locateCenterOnScreen(image)

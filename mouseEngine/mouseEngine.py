@@ -9,6 +9,7 @@ class MouseEngine:
         self.dt = 1.0
         self.mouse_position = np.array(pyautogui.position(), dtype=float)
         self.mouse_velocity = np.random.rand(2) * 10 - 5
+        self.close_distance = 15.0
         
     def move_the_mouse_one_step(self) -> None:
         if self.target is None:
@@ -40,13 +41,45 @@ class MouseEngine:
         self.mouse_position += self.mouse_velocity * self.dt
         pyautogui.moveTo(*self.mouse_position.astype(int))
         
+    def is_mouse_close(self) -> bool:
+        if self.target is None:
+            raise ValueError("Mouse Engine: Target is not set")
         
+        target_vector = np.array(self.target) - np.array(self.mouse_position)
+        target_vector_magnitude = np.linalg.norm(target_vector)
         
-    def move_mouse_following_path(self, path: list) -> None:
-        for point in path:
-            pyautogui.moveTo(*point)
+        return target_vector_magnitude < self.close_distance
+    
+    
+    def move_mouse_all_the_way(self, target: np.ndarray, speed: float = 30.0) -> None:
+        self.target = target
+        self.speed = speed
+        
+        while not self.is_mouse_close():
+            self.move_the_mouse_one_step()
             pyautogui.sleep(0.001)
+            
+        pyautogui.click()
+    
+            
+    # def move_mouse_following_path(self, target: np.ndarray, path: np.ndarray, interval_s: float = 0.01) -> None:
+    #     N = 10
         
+    #     print(path)
+        
+    #     for point1, point2 in zip(path[:-1], path[1:]):
+    #         point1 = np.array(point1) + target
+    #         point2 = np.array(point2) + target
+            
+    #         point1 = np.clip(point1, 0, np.array(pyautogui.size())).astype(int)
+    #         point2 = np.clip(point2, 0, np.array(pyautogui.size())).astype(int)
+            
+    #         print(point1, point2)
+            
+    #         for i in range(1, N + 1):
+    #             point = point1 + (point2 - point1) * i / N
+    #             pyautogui.moveTo(*point)
+    #             pyautogui.sleep(interval_s / N)
         
         
     

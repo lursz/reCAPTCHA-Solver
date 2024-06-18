@@ -53,7 +53,7 @@ def main() -> None:
         'car': 3,
         'chimney': 4,
         'crosswalk': 5,
-        'hydrant': 6,
+        'a fire hydrant': 6,
         'motorcycle': 7,
         'mountain': 8,
         'other': 9,
@@ -67,7 +67,7 @@ def main() -> None:
         tensor_list.append(data_transform(img))
         
     TEMP = 1.0
-    THRESHOLD = 0.7
+    THRESHOLD = 0.3
         
     label_index = label_to_index[header_label]
     print(header_label, label_index)
@@ -81,25 +81,35 @@ def main() -> None:
         
     print(list_of_predictions)
     
-    # MOUSE ENGINE
-    hidden_dim = 16
-    mouse_model = Generator(3, hidden_dim, hidden_dim)
-    mouse_model.load_state_dict(torch.load('generator.pth', map_location=torch.device('cpu')))
-    mouse_model.eval()
-    
-    current_position = torch.Tensor(gui_agent.get_mouse_position())
-    target_position = torch.Tensor([300, 300])
-    
-    model_target_position = current_position - target_position
-    path = mouse_model(model_target_position)[:, 1:3].detach().numpy()
-    
-    
+
     
     mouse = MouseEngine()
-    # mouse.target = (300, 300)
-    # while True:
-        # mouse.move_the_mouse_one_step()
-        # sleep(0.001)
+    for i, img in enumerate(list_of_img):
+        if list_of_predictions[i]:
+            mouse.move_mouse_all_the_way(gui_agent.locate_on_screen(img))
+            sleep(1)
+            
+    mouse.move_mouse_all_the_way(gui_agent.locate_on_screen("guiAgent/images/verify.png"))
+    
+    
+    # MOUSE ENGINE
+    # hidden_dim = 16
+    # mouse_model = Generator(3, hidden_dim, hidden_dim)
+    # mouse_model.load_state_dict(torch.load('generator.pth', map_location=torch.device('cpu')))
+    # mouse_model.eval()
+    
+    # image_pos = gui_agent.locate_on_screen(list_of_img[0])
+    # target_position = torch.Tensor(image_pos)
+    
+    # current_position = torch.Tensor(gui_agent.get_mouse_position())
+    # screen_resolution = gui_agent.get_screen_resolution()
+    # model_target_position = current_position - target_position
+    # model_target_position[0] /= screen_resolution[0]
+    # model_target_position[1] /= screen_resolution[1]
+    
+    # path = mouse_model(model_target_position)[:, 1:3].detach().numpy()
+    # path[:, 0] *= screen_resolution[0] 
+    # path[:, 1] *= screen_resolution[1]
     
 
 if __name__ == '__main__':
