@@ -3,8 +3,8 @@ import torch
 from guiAgent.guiAgent import GuiAgent
 from imageProcessing.imageProcessor import ImageProcessor
 from imageProcessing.ocr import OCR
-from models.gan import Generator
-from models.model import TunedModel
+from mouseEngine.model.gan import Generator
+from models.model.modelMulti import TunedModel
 from mouseEngine.mouseEngine import MouseEngine
 from torchvision import models, transforms, datasets
 

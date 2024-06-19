@@ -166,7 +166,7 @@ model/kaggle/
 processed_dataset/
 **/mouse_data.json
 **/*.json
-# Saved models
+# Saved model
 **/saved_models/
 **/trainer.ipynb
 *.pth

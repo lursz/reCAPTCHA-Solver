@@ -6,9 +6,7 @@ from torchvision import models, transforms, datasets
 from tqdm import tqdm
 from matplotlib import pyplot as plt
 import torchsummary
-from models.modelTools import ModelTools
-
-
+from models.model.modelTools import ModelTools
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
