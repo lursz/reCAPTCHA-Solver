@@ -16,7 +16,7 @@ sequence_length = 100  # Adjust based on your data
 input_dim = 3  # timestamp, x, y
 
 
-class GanTrainer:
+class GanTraining:
     def __init__(self):
         self.EPOCHS = 10000
 
@@ -40,7 +40,7 @@ class GanTrainer:
         generator = Generator(3, hidden_dim, hidden_dim).to(device)
         discriminator = Discriminator(hidden_dim).to(device)
 
-        gan_trainer = GanTrainer(generator, discriminator, dataloader, 3, 0.00001)
+        gan_trainer = GanTraining(generator, discriminator, dataloader, 3, 0.00001)
         gan_trainer.train(self.EPOCHS)
 
         torch.save(generator.state_dict(), 'generator.pth')
@@ -48,5 +48,5 @@ class GanTrainer:
 
 
 if __name__ == '__main__':
-    trainer = GanTrainer()
+    trainer = GanTraining()
     trainer.trainGan()
