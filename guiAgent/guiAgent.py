@@ -1,10 +1,12 @@
 import os
 import pyautogui
 import numpy as np
+import os
+from dotenv import load_dotenv
 
 class GuiAgent:
     def __init__(self) -> None:
-        pass
+        load_dotenv()
     
     def get_screen_resolution(self) -> tuple:
         return pyautogui.size()
@@ -28,10 +30,6 @@ class GuiAgent:
     def click_checkbox(self) -> None:
         self.click_image('guiAgent/images/captcha_checkbox.png')
         pyautogui.click()
-        
-    def download_audio(self) -> None:
-        self.click_image('guiAgent/images/headphones.png')
-        self.click_image('guiAgent/images/download.png')
         
     def take_screenshot(self, path: str) -> str:
         if not os.path.exists(path):

@@ -10,6 +10,8 @@ import numpy as np
 import glob
 from torch.utils.data import Dataset, DataLoader
 import cv2
+import os
+from dotenv import load_dotenv
 import datetime
 from models.model import modelMulti
 from models.model.modelMulti import training_loop, device, BaselineModel, TunedModel
@@ -19,10 +21,11 @@ print(f"Using device: {device}")
 
 class Trainer:
     def __init__(self) -> None:
+        load_dotenv()
         self.NUM_CLASSES = len(self.image_datasets['train'].classes)
         self.EPOCHS = 20
-        dataset_directory: str = 'processed_dataset/images/'
-        self.result_model_directory: str = 'saved_models/'
+        dataset_directory: str = os.getenv('CAPTCHA_DATASET_DIR')
+        self.result_model_directory: str = os.getenv('CAPTCHA_SAVE_MODELS_DIR')
         # Define dataloaders
         self.data_transforms = {
             'train': transforms.Compose([
