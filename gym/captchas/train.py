@@ -1,20 +1,14 @@
 # Imports
 import torch
 from torch import nn
-from torch import Tensor
 import torch.optim as optim
-from torchvision import models, transforms, datasets
-from tqdm import tqdm
-import matplotlib.pyplot as plt
+from torchvision import transforms, datasets
 import numpy as np
-import glob
-from torch.utils.data import Dataset, DataLoader
-import cv2
+from torch.utils.data import DataLoader
 import os
 from dotenv import load_dotenv
 import datetime
-from models.model import modelMulti
-from models.model.modelMulti import training_loop, device, BaselineModel, TunedModel
+from gym.captchas.model.modelMulti import training_loop, device, BaselineModel, TunedModel
 
 print(f"Using device: {device}")
 

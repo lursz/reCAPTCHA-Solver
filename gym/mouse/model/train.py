@@ -1,12 +1,9 @@
 import json
 import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 import pandas as pd
-import numpy as np
 
-from mouseEngine.model.gan import MouseMovementDataset, Generator, Discriminator
+from gym.mouse.model.gan import MouseMovementDataset, Generator, Discriminator
 
 # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 device = torch.device('cpu')
@@ -22,7 +19,7 @@ class GanTraining:
 
     def trainGan(self):
         data = []
-        with open('mouseEngine/mouse_data.json') as f:
+        with open('mouse/mouse_data.json') as f:
             data = json.load(f)
 
         data_dfs = [pd.DataFrame(d)[['x', 'y', 'speed']] for d in data if len(d) > 0]
