@@ -3,7 +3,7 @@ from torch import nn
 from torch import Tensor
 from torchvision import models
 from tqdm import tqdm
-from gym.captchas.model import ModelTools
+from gym.captchas.model.modelTools import ModelTools
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

@@ -27,71 +27,41 @@ class ImageProcessor:
     def crop_image_to_captcha(self) -> np.ndarray:
         self.height, self.width, _ = self.img.shape
 
-        kernel_size = self.width // 3
 
-        img_eroded = cv2.erode(self.img, np.ones((kernel_size, kernel_size), np.uint8))
-        img_dilated = cv2.dilate(self.img, np.ones((kernel_size, kernel_size), np.uint8))
+        # Morphological operations
+        kernel_size = self.width // 3
+        kernel = np.ones((kernel_size, kernel_size), np.uint8)
+        img_eroded = cv2.erode(self.img, kernel)
+        img_dilated = cv2.dilate(self.img, kernel)
 
         # Determine background seed areas where both eroded and dilated images match the original
-        img_background_seed = ((img_eroded == self.img) & (img_dilated == self.img))[..., 0]
-
-        img_potential_background = (self.img == 255)[..., 0]
+        img_background_seed = np.all((img_eroded == self.img) & (img_dilated == self.img), axis=-1)
+        img_potential_background = np.all(self.img == 255, axis=-1)
         img_background = img_background_seed
 
         # Reconstruction (expand the background area iteratively until no further expansion is possible)
         while True:
-            img_new_background = cv2.dilate(img_background.astype(np.uint8), np.ones((3, 3), np.uint8)).astype(bool)
-            img_new_background = img_new_background & img_potential_background
+            dilatated_background = cv2.dilate(img_background.astype(np.uint8), np.ones((3, 3), np.uint8)).astype(bool)
+            img_new_background = dilatated_background & img_potential_background
             # Break if the background does not change
             if np.array_equal(img_new_background, img_background):
                 break
             img_background = img_new_background
-            
-        # plt.imshow(img_background)
-        # plt.show()
         
-        img_foreground = ~img_background
-
         # Identify connected components in the non-background areas
-        totalLabels, label_ids, values, centroids = cv2.connectedComponentsWithStats(img_foreground.astype(np.uint8))
-        
-        # plt.imshow(label_ids)
-        # plt.show()
+        img_foreground = ~img_background
+        _, label_ids, values, _ = cv2.connectedComponentsWithStats(img_foreground.astype(np.uint8))
 
-        # Largest connected component
+        # Select largest connected component 
         largest_index = np.argmax(values[1:, cv2.CC_STAT_AREA]) + 1
         selected_area = label_ids == largest_index
-        
-        # print(largest_index)
-        
-        # plt.imshow(selected_area)
-        # plt.show()
 
-        xs = np.linspace(0, self.width - 1, self.width, dtype=int)
-        ys = np.linspace(0, self.height - 1, self.height, dtype=int)
-
-        xs = np.array([xs] * self.height)
-        ys = np.array([ys] * self.width).T
-
-        interesting_ys = ys[selected_area]
-
-        min_y = np.min(interesting_ys)
-
-        interesting_xs = xs[selected_area & (ys == min_y)]
-        min_x = np.min(interesting_xs)
-
-        max_y = np.max(interesting_ys)
-
-        interesting_xs = xs[selected_area & (ys == max_y)]
-        max_x = np.max(interesting_xs)
-        
-        # print(min_x, max_x, min_y, max_y)
+        y_coords, x_coords = np.where(selected_area)
+        min_x, max_x = np.min(x_coords), np.max(x_coords)
+        min_y, max_y = np.min(y_coords), np.max(y_coords)
 
         # Crop the image to the bounding box of the largest connected component
         self.img_cropped = self.img[min_y:max_y, min_x:max_x]
-
-        # plt.imshow(self.img_cropped)
-        # plt.show()
 
     def cut_captcha_pics(self):
         # background areas
@@ -109,12 +79,6 @@ class ImageProcessor:
         # Extract horizontal and vertical lines from eroded images
         horizontal_lines = captcha_eroded_horizontal == 1
         vertical_lines = captcha_eroded_vertical == 1
-        
-        # plt.imshow(horizontal_lines)
-        # plt.show()
-        
-        # plt.imshow(vertical_lines)
-        # plt.show()
 
         # Identify connected components in the horizontal and vertical lines
         total_labels_horizontal, label_ids_horizontal, values_horizontal, centroids_horizontal = cv2.connectedComponentsWithStats(horizontal_lines.astype(np.uint8))
@@ -153,7 +117,6 @@ class ImageProcessor:
 
         self.header_img = self.img_cropped[header_start_y:header_end_y, header_start_x:header_end_x]
 
-        # --- Pictures ---
         # Initialize a list to store pieces of the image
         self.list_of_pics = []
         for i in range(1, len(average_ys_for_line) - 1):
@@ -165,16 +128,9 @@ class ImageProcessor:
                 
                 piece = self.img_cropped[start_y:end_y, start_x:end_x]
                 self.list_of_pics.append(piece)
-                
-        # for pic in self.list_of_pics:
-        #     plt.imshow(pic)
-        #     plt.show()
-
        
             
-    def polishing_the_pics(self):
-
-
+    def polishing_the_pics(self) -> None:
         # Process each piece to remove background lines
         processed_pieces = []
         for piece in self.list_of_pics:
@@ -194,20 +150,10 @@ class ImageProcessor:
             selected_ys = np.where(~horizontal_line_exists)[0]
             selected_xs = np.where(~vertical_line_exists)[0]
             
-            # print(horizontal_line_exists)
-            # print(selected_ys)
-            # print(selected_xs)
-            
             # Crop the piece to remove lines
             processed_piece = piece[selected_ys, :][:, selected_xs]
             processed_pieces.append(processed_piece)
 
-        # Display each processed piece
-        # for piece in processed_pieces:
-        #     plt.imshow(piece)
-        #     plt.show()
-            
-            
     def save_all_pics(self, path: str) -> None:
         if not os.path.exists(path):
             os.makedirs(path)

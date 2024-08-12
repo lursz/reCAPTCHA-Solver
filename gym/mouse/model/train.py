@@ -3,7 +3,7 @@ import torch
 from torch.utils.data import DataLoader
 import pandas as pd
 
-from gym.mouse.model.gan import MouseMovementDataset, Generator, Discriminator
+from gym.mouse.model.gan import GanTrainer, MouseMovementDataset, Generator, Discriminator
 
 # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 device = torch.device('cpu')
@@ -37,7 +37,7 @@ class GanTraining:
         generator = Generator(3, hidden_dim, hidden_dim).to(device)
         discriminator = Discriminator(hidden_dim).to(device)
 
-        gan_trainer = GanTraining(generator, discriminator, dataloader, 3, 0.00001)
+        gan_trainer = GanTrainer(generator, discriminator, dataloader, 3, 0.00001)
         gan_trainer.train(self.EPOCHS)
 
         torch.save(generator.state_dict(), 'generator.pth')

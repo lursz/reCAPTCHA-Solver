@@ -16,7 +16,7 @@ class GuiAgent:
     
     def open_browser(self, url: str) -> None:
         pyautogui.hotkey('win', 'r')
-        pyautogui.typewrite('brave --incognito ' + url)
+        pyautogui.typewrite(os.getenv('BROWSER')+' --incognito ' + url)
         pyautogui.press('enter')
         print("Browser opened")
         
@@ -28,7 +28,7 @@ class GuiAgent:
         pyautogui.click(pyautogui.locateCenterOnScreen(image))
     
     def click_checkbox(self) -> None:
-        self.click_image('guiAgent/images/captcha_checkbox.png')
+        self.click_image(os.getenv('ICONS_FOLDER')+'captcha_checkbox.png')
         pyautogui.click()
         
     def take_screenshot(self, path: str) -> str:
