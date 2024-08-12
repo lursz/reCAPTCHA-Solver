@@ -11,6 +11,28 @@ class MouseEngine:
         self.mouse_velocity = np.random.rand(2) * 10 - 5
         self.close_distance = 15.0
         
+        
+    def is_mouse_close(self) -> bool:
+        if self.target is None:
+            raise ValueError("Mouse Engine: Target is not set")
+        
+        target_vector = np.array(self.target) - np.array(self.mouse_position)
+        target_vector_magnitude = np.linalg.norm(target_vector)
+        
+        return target_vector_magnitude < self.close_distance
+    
+    
+    def move_mouse_all_the_way(self, target: np.ndarray, speed: float = 30.0) -> None:
+        self.target = target
+        self.speed = speed
+        
+        while not self.is_mouse_close():
+            self.move_the_mouse_one_step()
+            pyautogui.sleep(0.001)
+            
+        pyautogui.click()
+        
+        
     def move_the_mouse_one_step(self) -> None:
         if self.target is None:
             raise ValueError("Mouse Engine: Target is not set")
@@ -41,26 +63,7 @@ class MouseEngine:
         self.mouse_position += self.mouse_velocity * self.dt
         pyautogui.moveTo(*self.mouse_position.astype(int))
         
-    def is_mouse_close(self) -> bool:
-        if self.target is None:
-            raise ValueError("Mouse Engine: Target is not set")
-        
-        target_vector = np.array(self.target) - np.array(self.mouse_position)
-        target_vector_magnitude = np.linalg.norm(target_vector)
-        
-        return target_vector_magnitude < self.close_distance
-    
-    
-    def move_mouse_all_the_way(self, target: np.ndarray, speed: float = 30.0) -> None:
-        self.target = target
-        self.speed = speed
-        
-        while not self.is_mouse_close():
-            self.move_the_mouse_one_step()
-            pyautogui.sleep(0.001)
-            
-        pyautogui.click()
-    
+
             
     # def move_mouse_following_path(self, target: np.ndarray, path: np.ndarray, interval_s: float = 0.01) -> None:
     #     N = 10
