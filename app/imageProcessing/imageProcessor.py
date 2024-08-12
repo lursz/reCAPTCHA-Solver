@@ -27,7 +27,6 @@ class ImageProcessor:
     def crop_image_to_captcha(self) -> np.ndarray:
         self.height, self.width, _ = self.img.shape
 
-
         # Morphological operations
         kernel_size = self.width // 3
         kernel = np.ones((kernel_size, kernel_size), np.uint8)
@@ -73,36 +72,30 @@ class ImageProcessor:
         kernel_height = height // 2
 
         # horizontal and vertical erosion to identify lines
-        captcha_eroded_horizontal = cv2.erode(captcha_background.astype(np.uint8), np.ones((1, kernel_width), np.uint8))
-        captcha_eroded_vertical = cv2.erode(captcha_background.astype(np.uint8), np.ones((kernel_height, 1), np.uint8))
+        horizontal_kernel = np.ones((1, kernel_width), np.uint8)
+        vertical_kernel = np.ones((kernel_height, 1), np.uint8)
+
+        captcha_eroded_horizontal = cv2.erode(captcha_background.astype(np.uint8), horizontal_kernel)
+        captcha_eroded_vertical = cv2.erode(captcha_background.astype(np.uint8), vertical_kernel)
 
         # Extract horizontal and vertical lines from eroded images
         horizontal_lines = captcha_eroded_horizontal == 1
         vertical_lines = captcha_eroded_vertical == 1
 
         # Identify connected components in the horizontal and vertical lines
-        total_labels_horizontal, label_ids_horizontal, values_horizontal, centroids_horizontal = cv2.connectedComponentsWithStats(horizontal_lines.astype(np.uint8))
-        total_labels_vertical, label_ids_vertical, values_vertical, centroids_vertical = cv2.connectedComponentsWithStats(vertical_lines.astype(np.uint8))
+        total_labels_horizontal, label_ids_horizontal, _, _ = cv2.connectedComponentsWithStats(horizontal_lines.astype(np.uint8))
+        total_labels_vertical, label_ids_vertical, _, _ = cv2.connectedComponentsWithStats(vertical_lines.astype(np.uint8))
 
         xs = np.linspace(0, width - 1, width, dtype=int)
         ys = np.linspace(0, height - 1, height, dtype=int)
-
         xs = np.array([xs] * height)
         ys = np.array([ys] * width).T
 
         # horizontal line
-        average_ys_for_line = []
-        for i in range(1, total_labels_horizontal):
-            line = label_ids_horizontal == i
-            interesting_ys = ys[line]
-            average_ys_for_line.append(np.round(np.mean(interesting_ys)).astype(int))
+        average_ys_for_line = [np.round(np.mean(ys[label_ids_horizontal == i])).astype(int) for i in range(1, total_labels_horizontal)]
 
         # vertical line
-        average_xs_for_line = []
-        for i in range(1, total_labels_vertical):
-            line = label_ids_vertical == i
-            interesting_xs = xs[line]
-            average_xs_for_line.append(np.round(np.mean(interesting_xs)).astype(int))
+        average_xs_for_line = [np.round(np.mean(xs[label_ids_vertical == i])).astype(int) for i in range(1, total_labels_vertical)]
 
         average_ys_for_line.sort()
         average_xs_for_line.sort()
