@@ -10,3 +10,4 @@ easyocr>=1.7.1
 pandas>=2.2.2
 torchsummary>=1.5.1
 python-dotenv>=1.0.1
+yolov5>=7.0.13j
