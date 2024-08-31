@@ -103,10 +103,10 @@ def training_loop(model, criterion, optimizer, dataloaders, image_datasets, EPOC
         running_loss = 0.0
         running_corrects = 0
         for inputs, labels in tqdm(dataloaders['train']):
-            optimizer.zero_grad()
             inputs = inputs.to(device)
             labels = labels.to(device)
             
+            optimizer.zero_grad()
             outputs = model(inputs)
             loss = criterion(outputs, labels)
             loss.backward()
