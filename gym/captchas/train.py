@@ -8,8 +8,8 @@ from torch.utils.data import DataLoader
 import os
 from dotenv import load_dotenv
 import datetime
-from gym.captchas.model.modelMulti import training_loop, BaselineModel, TunedModel
-from gym.captchas.model.modelSingle import ModelSingle, ObjectDetectionDataset
+from model.modelMulti import BaselineModel, TunedModel, training_loop
+from model.modelSingle import ModelSingle, ObjectDetectionDataset, train
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -84,10 +84,8 @@ class TrainerMulti:
 
 class TrainerSingle:
     def __init__(self) -> None:
-        load_dotenv()
-        self.NUM_CLASSES = len(self.image_datasets['train'].classes)
+        self.NUM_CLASSES = 11
         self.EPOCHS = 20
-        dataset_directory: str = os.getenv('CAPTCHA_DATASET_DIR')
         self.result_model_directory: str = os.getenv('CAPTCHA_SAVE_MODELS_DIR')
 
         transform = transforms.Compose([
@@ -95,20 +93,24 @@ class TrainerSingle:
             transforms.ToTensor(),
         ])
 
-        dataset = ObjectDetectionDataset(images_dir='path/to/images', labels_dir='path/to/labels', transform=transform)
-        dataloader = DataLoader(dataset, batch_size=4, shuffle=True)
+        self.dataset = ObjectDetectionDataset(images_dir='input/yolo/train/images', labels_dir='input/yolo/train/labels', transform=transform)
+        self.dataloader = DataLoader(self.dataset, batch_size=4, shuffle=True)
 
     def train(self) -> None:
-        model = ModelSingle(num_classes=10)  # Assuming 10 classes
+        model = ModelSingle(num_classes=10)  
         criterion = nn.MSELoss()  # Mean Squared Error for bounding box regression
         optimizer = optim.Adam(model.parameters(), lr=0.001)
+        history = train(model, self.dataloader, criterion, optimizer, device, self.EPOCHS, self.dataset)
+        max_accuracy = np.int32(max(history['val_accuracy']) * 100)
+        torch.save(model.state_dict(),
+                   f'{self.result_model_directory}/model_single_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")}_{max_accuracy}.pt')
+        model.plot_accuracy_from_history(history)  #, path="accuracy_plot.png")
         
-        model.train(model, self.dataloader, criterion, optimizer, device, num_epochs=20)
 
 
 
 if __name__ == '__main__':
-    trainer = TrainerMulti()
+    # trainer = TrainerMulti()
     # trainer.train_baseline()
     # trainer.train_resnet()
     

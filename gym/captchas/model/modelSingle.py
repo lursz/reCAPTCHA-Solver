@@ -7,7 +7,7 @@ from torchvision import models, transforms
 import torchsummary
 from torch.utils.data import Dataset, DataLoader
 from PIL import Image
-from gym.captchas.model.modelTools import ModelTools
+from model.modelTools import ModelTools
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -38,20 +38,20 @@ class ModelSingle(nn.Module, ModelTools):
 
     
 
-def train(model, dataloader, criterion, optimizer, device, num_epochs):
+def train(model: nn.Module, dataloader: DataLoader, criterion, optimizer, device, EPOCHS, image_datasets):
     accuracy_history: list = []
     loss_history: list = []
     val_accuracy_history: list = []
     val_loss_history: list = []
     model.to(device)
 
-    for epoch in range(num_epochs):
+    for epoch in range(EPOCHS):
         model.train()
         running_loss = 0.0
         running_corrects = 0
 
         # Training
-        for images, targets in tqdm(dataloader['train']):
+        for images, targets in dataloader:
             images = images.to(device)
             targets = targets.to(device)
 
@@ -115,19 +115,19 @@ class ObjectDetectionDataset(Dataset):
         image_path = os.path.join(self.images_dir, self.images[idx])
         label_path = os.path.join(self.labels_dir, self.images[idx].replace('.jpg', '.txt'))
 
-        # Load image
+        # images
         image = Image.open(image_path).convert('RGB')
         if self.transform:
             image = self.transform(image)
 
-        # Load label
+        # labels
         with open(label_path, 'r') as f:
             label = f.readline().split()
             label = list(map(float, label))
             class_id = int(label[0])
             bbox = torch.tensor(label[1:])
 
-        # One-hot encode the class
+        # One-hot encode
         class_label = torch.zeros(1)
         class_label[0] = class_id
 
@@ -135,31 +135,3 @@ class ObjectDetectionDataset(Dataset):
         target = torch.cat((class_label, bbox))
 
         return image, target
-class CustomYoloDataset(Dataset):
-    def __init__(self, annotations_file, img_dir, transform=None):
-        self.img_dir = img_dir
-        self.transform = transform
-        self.annotations = self._load_annotations(annotations_file)
-
-    def _load_annotations(self, annotations_file):
-        annotations = []
-        with open(annotations_file, 'r') as file:
-            for line in file:
-                data = line.strip().split()
-                label = int(data[0])
-                coordinates = list(map(float, data[1:]))
-                annotations.append((label, coordinates))
-        return annotations
-
-    def __len__(self):
-        return len(self.annotations)
-
-    def __getitem__(self, idx):
-        label, coordinates = self.annotations[idx]
-        img_path = os.path.join(self.img_dir, f'image_{idx}.jpg')  # Modify as needed
-        image = Image.open(img_path).convert("RGB")
-        if self.transform:
-            image = self.transform(image)
-        # Return image, class label, and bounding box coordinates
-        return image, label, torch.tensor(coordinates)
-    
