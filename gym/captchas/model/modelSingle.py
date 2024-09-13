@@ -66,9 +66,12 @@ def train(model: nn.Module, dataloader: DataLoader, criterion, optimizer, device
             optimizer.step()
 
             running_loss += loss.item()
-            running_corrects += torch.sum(torch.argmax(outputs, dim=1) == torch.argmax(targets[:, 12:], dim=1)).cpu().item()
+            outputs_sigmoid = torch.sigmoid(outputs)
+
+            incorrects_count = torch.sum((outputs_sigmoid > 0.5) != (targets[:, 12:] > 0.5))
+            running_corrects += len(images) * 16 - incorrects_count
         epoch_loss = running_loss / len(image_datasets['train'])
-        epoch_acc = running_corrects / len(image_datasets['train'])
+        epoch_acc = running_corrects / (len(image_datasets['train']) * 16)
         accuracy_history.append(epoch_acc)
         loss_history.append(epoch_loss)
         
@@ -83,12 +86,17 @@ def train(model: nn.Module, dataloader: DataLoader, criterion, optimizer, device
                 
                 outputs = model(inputs, labels[:, :12])
                 val_loss = criterion(outputs, labels[:, 12:])
+
+                print(labels[:, 12:], outputs)
                 
                 val_running_loss += val_loss.cpu().item() * inputs.size(0)
-                val_running_corrects += torch.sum(torch.argmax(outputs, dim=1) == torch.argmax(labels[:, 12:], dim=1)).cpu().item()
+                outputs_sigmoid = torch.sigmoid(outputs)
+
+                incorrects_count = torch.sum((outputs_sigmoid > 0.5) != (labels[:, 12:] > 0.5))
+                val_running_corrects += len(inputs) * 16 - incorrects_count
 
         val_epoch_loss = val_running_loss / len(image_datasets['val'])
-        val_epoch_acc = val_running_corrects / len(image_datasets['val'])
+        val_epoch_acc = val_running_corrects / (len(image_datasets['val']) * 16)
         val_accuracy_history.append(val_epoch_acc)
         val_loss_history.append(val_epoch_loss)
 
@@ -143,7 +151,12 @@ class ObjectDetectionDataset(Dataset):
                 tile_x1 = i * tile_width
                 tile_y1 = j * tile_width
 
-                for bbox_x1, bbox_y1, bbox_x2, bbox_y2 in zip(bbox[::4], bbox[1::4], bbox[2::4], bbox[3::4]):
+                for bbox_x1_part, bbox_y1_part, bbox_x2_part, bbox_y2_part in zip(bbox[::4], bbox[1::4], bbox[2::4], bbox[3::4]):
+                    bbox_x1 = bbox_x1_part * self.image_width
+                    bbox_y1 = bbox_y1_part * self.image_width
+                    bbox_x2 = bbox_x2_part * self.image_width
+                    bbox_y2 = bbox_y2_part * self.image_width
+
                     is_x_intersection = (bbox_x1 <= tile_x1 <= bbox_x2) or (bbox_x1 <= tile_x1 + tile_width <= bbox_x2)
                     is_y_intersection = (bbox_y1 <= tile_y1 <= bbox_y2) or (bbox_y1 <= tile_y1 + tile_width <= bbox_y2)
 
