@@ -126,45 +126,35 @@ class ObjectDetectionDataset(Dataset):
 
         # labels
         with open(label_path, 'r') as f:
-            label = f.readline().split()
-            label = list(map(float, label))
+            labels = f.read().split('\n')
+            labels = [list(map(float, label.split(' '))) for label in labels if label]
+            class_ids = [int(label[0]) for label in labels]
+            bboxes = [label[1:5] for label in labels] # [[centerx, centery, width, height], ...]
 
-            if len(label) == 0:
-                class_id = 0
-                bbox = torch.zeros(0)
-            else:
-                class_id = int(label[0]) + 1
-                bbox = torch.tensor(label[1:])
-
-        # One-hot encode
-        class_label = torch.zeros(12)
-        class_label[class_id] = 1
-
+        # One-hot encode - FIX THIS
+        class_tensors = [torch.zeros((self.CLASS_COUNT)) for _ in range(4)]
+        for i, class_id in enumerate(class_ids):
+            class_tensors[i][class_id] = 1.0
+        
+        # Normalize bbox
+        bbox = torch.tensor(bboxes)
+        bbox = bbox / self.image_width
+        
         # Select correct tiles
-        rows_count = 4
-        tile_width = self.image_width // rows_count
+        tile_width = self.image_width // self.ROWS_COUNT
+        selected_tiles_tensor = torch.zeros(self.ROWS_COUNT * self.ROWS_COUNT)
 
-        selected_tiles_tensor = torch.zeros(rows_count * rows_count)
-
-        for i in range(4):
-            for j in range(4):
-                tile_x1 = i * tile_width
-                tile_y1 = j * tile_width
-
-                for bbox_x1_part, bbox_y1_part, bbox_x2_part, bbox_y2_part in zip(bbox[::4], bbox[1::4], bbox[2::4], bbox[3::4]):
-                    bbox_x1 = bbox_x1_part * self.image_width
-                    bbox_y1 = bbox_y1_part * self.image_width
-                    bbox_x2 = bbox_x2_part * self.image_width
-                    bbox_y2 = bbox_y2_part * self.image_width
-
-                    is_x_intersection = (bbox_x1 <= tile_x1 <= bbox_x2) or (bbox_x1 <= tile_x1 + tile_width <= bbox_x2)
-                    is_y_intersection = (bbox_y1 <= tile_y1 <= bbox_y2) or (bbox_y1 <= tile_y1 + tile_width <= bbox_y2)
-
-                    if is_x_intersection and is_y_intersection:
-                        selected_tiles_tensor[i * rows_count + j] = 1.0
-
-        target = torch.cat((class_label, selected_tiles_tensor))
-
+        for i, bbox in enumerate(bboxes):
+            center_x, center_y, width, height = bbox
+            start_row = int(center_y // tile_width)
+            start_col = int(center_x // tile_width)
+            end_row = int((center_y + height) // tile_width)
+            end_col = int((center_x + width) // tile_width)
+            for row in range(start_row, end_row + 1):
+                for col in range(start_col, end_col + 1):
+                    selected_tiles_tensor[row * self.ROWS_COUNT + col] = 1.0
+                    
+        target = torch.cat((torch.stack(class_tensors), selected_tiles_tensor, bbox.flatten()))
         # return image.to(device), target.to(device)
         return image, target
     
@@ -175,6 +165,8 @@ class ObjectDetectionDataset(Dataset):
             self.labels_tensors_cache[idx] = target
 
     def __init__(self, images_dir, labels_dir, image_width: int = 450) -> None:
+        self.CLASS_COUNT = 12
+        self.ROWS_COUNT = 4
         self.image_width = image_width
 
         self.transform = transforms.Compose([
