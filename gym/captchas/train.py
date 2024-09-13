@@ -73,7 +73,7 @@ class TrainerMulti:
         optimizer = optim.Adam(resnet_model.parameters(), lr=0.001)
         # Train model
         history = training_loop(resnet_model, criterion, optimizer, self.dataloaders, self.image_datasets, self.EPOCHS)
-
+ 
         # Save model
         max_accuracy = np.int32(max(history['val_accuracy']) * 100)
         torch.save(resnet_model.state_dict(),
@@ -86,28 +86,39 @@ class TrainerSingle:
     def __init__(self) -> None:
         self.NUM_CLASSES = 11
         self.EPOCHS = 20
-        self.result_model_directory: str = os.getenv('CAPTCHA_SAVE_MODELS_DIR')
 
-        transform = transforms.Compose([
-            transforms.Resize((224, 224)),
-            transforms.ToTensor(),
-        ])
+        self.dataset_train = ObjectDetectionDataset(images_dir='input/yolo/train/images', labels_dir='input/yolo/train/labels')
+        self.dataset_val = ObjectDetectionDataset(images_dir='input/yolo/valid/images', labels_dir='input/yolo/valid/labels')
+        self.dataset_test = ObjectDetectionDataset(images_dir='input/yolo/test/images', labels_dir='input/yolo/test/labels')
 
-        self.dataset = ObjectDetectionDataset(images_dir='input/yolo/train/images', labels_dir='input/yolo/train/labels', transform=transform)
-        self.dataloader = DataLoader(self.dataset, batch_size=4, shuffle=True)
+        self.dataloader_train = DataLoader(self.dataset_train, batch_size=4, shuffle=True)
+        self.dataloader_val = DataLoader(self.dataset_val, batch_size=4, shuffle=True)
+        self.dataloader_test = DataLoader(self.dataset_test, batch_size=4, shuffle=True)
+
+        self.dataloaders = {
+            'train': self.dataloader_train,
+            'val': self.dataloader_val,
+            'test': self.dataloader_test
+        }
+
+        self.datasets = {
+            'train': self.dataset_train,
+            'val': self.dataset_val,
+            'test': self.dataset_test
+        }
 
     def train(self) -> None:
-        model = ModelSingle(num_classes=10)  
-        criterion = nn.MSELoss()  # Mean Squared Error for bounding box regression
+        model = ModelSingle(num_classes=12)
+        criterion = nn.CrossEntropyLoss()
         optimizer = optim.Adam(model.parameters(), lr=0.001)
-        history = train(model, self.dataloader, criterion, optimizer, device, self.EPOCHS, self.dataset)
+        history = train(model, self.dataloaders, criterion, optimizer, device, self.EPOCHS, self.datasets)
         max_accuracy = np.int32(max(history['val_accuracy']) * 100)
         torch.save(model.state_dict(),
-                   f'{self.result_model_directory}/model_single_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")}_{max_accuracy}.pt')
+                   f'{os.getenv('CAPTCHA_SAVE_MODELS_DIR')}/model_single_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")}_{max_accuracy}.pt')
         model.plot_accuracy_from_history(history)  #, path="accuracy_plot.png")
         
 
-
+        
 
 if __name__ == '__main__':
     # trainer = TrainerMulti()
