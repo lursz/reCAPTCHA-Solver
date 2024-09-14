@@ -30,15 +30,14 @@ class ModelSingle(nn.Module, ModelTools):
 
     def forward(self, img: torch.Tensor, class_encoded: torch.Tensor):
         x = self.resnet(img)
-        x = torch.cat((x, class_encoded), dim=1) # concatenate the object we're looking for
+        x = torch.cat((x, class_encoded), dim=1) # concatenate class of the object we're looking for
         x = self.fc(x)
-
         return x
 
 
     
 
-def train(model: nn.Module, dataloader: DataLoader, criterion, optimizer, device, EPOCHS, image_datasets):
+def train(model: nn.Module, dataloader: DataLoader, criterion, optimizer, device, EPOCHS: int, image_datasets):
     accuracy_history: list = []
     loss_history: list = []
     val_accuracy_history: list = []
@@ -131,10 +130,12 @@ class ObjectDetectionDataset(Dataset):
             class_ids = [int(label[0]) for label in labels]
             bboxes = [label[1:5] for label in labels] # [[centerx, centery, width, height], ...]
 
-        # One-hot encode - FIX THIS
+        # One-hot encode
         class_tensors = [torch.zeros((self.CLASS_COUNT)) for _ in range(4)]
         for i, class_id in enumerate(class_ids):
-            class_tensors[i][class_id] = 1.0
+            class_tensors[i][class_id] = 1.0    
+        
+        class_tensors = torch.cat(class_tensors) # merge class tensors into one one
         
         # Normalize bbox
         bbox = torch.tensor(bboxes)
@@ -153,8 +154,8 @@ class ObjectDetectionDataset(Dataset):
             for row in range(start_row, end_row + 1):
                 for col in range(start_col, end_col + 1):
                     selected_tiles_tensor[row * self.ROWS_COUNT + col] = 1.0
-                    
-        target = torch.cat((torch.stack(class_tensors), selected_tiles_tensor, bbox.flatten()))
+        
+        target = torch.cat((class_tensors, selected_tiles_tensor))
         # return image.to(device), target.to(device)
         return image, target
     
@@ -165,7 +166,7 @@ class ObjectDetectionDataset(Dataset):
             self.labels_tensors_cache[idx] = target
 
     def __init__(self, images_dir, labels_dir, image_width: int = 450) -> None:
-        self.CLASS_COUNT = 12
+        self.CLASS_COUNT = 11
         self.ROWS_COUNT = 4
         self.image_width = image_width
 
