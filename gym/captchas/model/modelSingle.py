@@ -1,4 +1,5 @@
 import os
+import random
 import torch
 from torch import nn
 import torch.optim as optim
@@ -7,7 +8,10 @@ from torchvision import models, transforms
 import torchsummary
 from torch.utils.data import Dataset, DataLoader
 from PIL import Image
+import cv2
+import numpy as np
 from model.modelTools import ModelTools
+import albumentations as A
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -21,7 +25,7 @@ class ModelSingle(nn.Module, ModelTools):
         for param in self.resnet.parameters():  # Freeze ResNet layers
             param.requires_grad = False
         self.resnet.fc = nn.Identity() # remove the final fully connected layer
-
+        
         self.fc = nn.Sequential(
             nn.Linear(512 + num_classes, 256),
             nn.ReLU(),
@@ -36,7 +40,9 @@ class ModelSingle(nn.Module, ModelTools):
         x = self.fc(x)
         return x
 
-
+    def unfreeze_last_resnet_layer(self):
+        for param in self.resnet.layer4.parameters():
+            param.requires_grad = True
     
 
 def train(model: ModelSingle, dataloader: DataLoader, criterion, optimizer, device, EPOCHS: int, image_datasets):
@@ -116,20 +122,20 @@ def train(model: ModelSingle, dataloader: DataLoader, criterion, optimizer, devi
     
 class ObjectDetectionDataset(Dataset):
     def __read_file(self, idx: int) -> tuple[Image.Image, torch.Tensor]:
+        print(self.images[idx])
         image_path = os.path.join(self.images_dir, self.images[idx])
         label_path = os.path.join(self.labels_dir, self.images[idx].replace('.jpg', '.txt'))
-
-        # images
-        image = Image.open(image_path).convert('RGB')
-        if self.transform:
-            image = self.transform(image)
 
         # labels
         with open(label_path, 'r') as f:
             labels = f.read().split('\n')
             labels = [list(map(float, label.split(' '))) for label in labels if label]
             class_ids = [int(label[0]) for label in labels]
-            bboxes = [[min(label[1::2]), min(label[2::2]), max(label[1::2]), max(label[2::2])] for label in labels]
+            # take edge points of the cluster of points and turn them into bbox
+            bboxes = [np.array([min(label[1::2]), min(label[2::2]), max(label[1::2]), max(label[2::2])]) * self.image_width for label in labels]
+            bboxes = [[x1, y1, x2, y2] for x1, y1, x2, y2 in bboxes if x2 - x1 > self.EPSILON and y2 - y1 > self.EPSILON]
+
+        class_ids = [] if len(bboxes) == 0 else [class_ids[0]] * len(bboxes) 
         
         class_tensors = torch.zeros((self.CLASS_COUNT))
         if len(class_ids) > 0:
@@ -140,13 +146,21 @@ class ObjectDetectionDataset(Dataset):
         tile_width = self.image_width / self.ROWS_COUNT
         selected_tiles_tensor = torch.zeros(self.ROWS_COUNT * self.ROWS_COUNT)
 
+        # images
+        image = cv2.imread(image_path)
+        transformed = self.transform(image=image, bboxes=bboxes, class_labels=class_ids)
+        image = transformed['image']
+        bboxes = transformed['bboxes']
+
+        image = self.pytorch_transform(image)
+
         for bbox in bboxes:
             left_x, top_y, right_x, bottom_y = bbox
 
-            left_x *= self.image_width
-            top_y *= self.image_width
-            right_x *= self.image_width
-            bottom_y *= self.image_width
+            # left_x *= self.image_width
+            # top_y *= self.image_width
+            # right_x *= self.image_width
+            # bottom_y *= self.image_width
 
             right_x = max(left_x, right_x - 1.0)
             bottom_y = max(top_y, bottom_y - 1.0)
@@ -171,14 +185,24 @@ class ObjectDetectionDataset(Dataset):
             self.labels_tensors_cache[idx] = target
 
     def __init__(self, images_dir, labels_dir, image_width: int = 450) -> None:
+        self.EPSILON = 1e-7
+
         self.CLASS_COUNT = 11
         self.ROWS_COUNT = 4
         self.image_width = image_width
 
-        self.transform = transforms.Compose([
-            transforms.Resize((self.image_width, self.image_width)),
-            transforms.ToTensor(),
+        self.transform = A.Compose([
+                A.Resize(image_width, image_width),
+                A.HorizontalFlip(p=0.5),
+                A.Affine(scale=(0.8, 1.2), rotate=(-10, 10), shear=(-0.3, 0.3), p=0.5),
+                A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+            ], bbox_params=A.BboxParams(format='pascal_voc', label_fields=['class_labels'])
+        )
+        self.pytorch_transform = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.ToTensor()
         ])
+        
         self.images_dir = images_dir
         self.labels_dir = labels_dir
         self.images = os.listdir(images_dir)
