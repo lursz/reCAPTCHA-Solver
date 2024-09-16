@@ -93,7 +93,7 @@ class TrainerSingle:
 
 
     def train(self) -> None:
-        model = ModelSingle(num_classes=12)
+        model = ModelSingle(num_classes=self.NUM_CLASSES)
         criterion = nn.CrossEntropyLoss()
         optimizer = optim.Adam(model.parameters(), lr=0.001)
         history = train(model, self.dataloaders, criterion, optimizer, device, EPOCHS, self.datasets)

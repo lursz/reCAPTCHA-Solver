@@ -15,6 +15,8 @@ print(f"Using device: {device}")
 class ModelSingle(nn.Module, ModelTools):
     def __init__(self, num_classes: int):
         super(ModelSingle, self).__init__()
+        self.num_classes = num_classes
+
         self.resnet = models.resnet18(pretrained=True)
         for param in self.resnet.parameters():  # Freeze ResNet layers
             param.requires_grad = False
@@ -37,7 +39,7 @@ class ModelSingle(nn.Module, ModelTools):
 
     
 
-def train(model: nn.Module, dataloader: DataLoader, criterion, optimizer, device, EPOCHS: int, image_datasets):
+def train(model: ModelSingle, dataloader: DataLoader, criterion, optimizer, device, EPOCHS: int, image_datasets):
     accuracy_history: list = []
     loss_history: list = []
     val_accuracy_history: list = []
@@ -58,16 +60,15 @@ def train(model: nn.Module, dataloader: DataLoader, criterion, optimizer, device
             targets = targets.to(device)
 
             optimizer.zero_grad()
-
-            outputs = model(images, targets[:, :12])
-            loss = criterion(outputs, targets[:, 12:])
+            outputs = model(images, targets[:, :model.num_classes])
+            loss = criterion(outputs, targets[:, model.num_classes:])
             loss.backward()
             optimizer.step()
 
             running_loss += loss.item()
             outputs_sigmoid = torch.sigmoid(outputs)
 
-            incorrects_count = torch.sum((outputs_sigmoid > 0.5) != (targets[:, 12:] > 0.5))
+            incorrects_count = torch.sum((outputs_sigmoid > 0.5) != (targets[:, model.num_classes:] > 0.5))
             running_corrects += len(images) * 16 - incorrects_count
         epoch_loss = running_loss / len(image_datasets['train'])
         epoch_acc = running_corrects / (len(image_datasets['train']) * 16)
@@ -83,15 +84,15 @@ def train(model: nn.Module, dataloader: DataLoader, criterion, optimizer, device
                 inputs = inputs.to(device)
                 labels = labels.to(device)
                 
-                outputs = model(inputs, labels[:, :12])
-                val_loss = criterion(outputs, labels[:, 12:])
+                outputs = model(inputs, labels[:, :model.num_classes])
+                val_loss = criterion(outputs, labels[:, model.num_classes:])
 
-                print(labels[:, 12:], outputs)
+                # print(labels[:, model.num_classes:], outputs)
                 
                 val_running_loss += val_loss.cpu().item() * inputs.size(0)
                 outputs_sigmoid = torch.sigmoid(outputs)
 
-                incorrects_count = torch.sum((outputs_sigmoid > 0.5) != (labels[:, 12:] > 0.5))
+                incorrects_count = torch.sum((outputs_sigmoid > 0.5) != (labels[:, model.num_classes:] > 0.5))
                 val_running_corrects += len(inputs) * 16 - incorrects_count
 
         val_epoch_loss = val_running_loss / len(image_datasets['val'])
@@ -128,29 +129,33 @@ class ObjectDetectionDataset(Dataset):
             labels = f.read().split('\n')
             labels = [list(map(float, label.split(' '))) for label in labels if label]
             class_ids = [int(label[0]) for label in labels]
-            bboxes = [label[1:5] for label in labels] # [[centerx, centery, width, height], ...]
-
-        # One-hot encode
-        class_tensors = [torch.zeros((self.CLASS_COUNT)) for _ in range(4)]
-        for i, class_id in enumerate(class_ids):
-            class_tensors[i][class_id] = 1.0    
+            bboxes = [[min(label[1::2]), min(label[2::2]), max(label[1::2]), max(label[2::2])] for label in labels]
         
-        class_tensors = torch.cat(class_tensors) # merge class tensors into one one
-        
-        # Normalize bbox
-        bbox = torch.tensor(bboxes)
-        bbox = bbox / self.image_width
+        class_tensors = torch.zeros((self.CLASS_COUNT))
+        if len(class_ids) > 0:
+            first_class_id = class_ids[0]
+            class_tensors[first_class_id] = 1.0
         
         # Select correct tiles
-        tile_width = self.image_width // self.ROWS_COUNT
+        tile_width = self.image_width / self.ROWS_COUNT
         selected_tiles_tensor = torch.zeros(self.ROWS_COUNT * self.ROWS_COUNT)
 
-        for i, bbox in enumerate(bboxes):
-            center_x, center_y, width, height = bbox
-            start_row = int(center_y // tile_width)
-            start_col = int(center_x // tile_width)
-            end_row = int((center_y + height) // tile_width)
-            end_col = int((center_x + width) // tile_width)
+        for bbox in bboxes:
+            left_x, top_y, right_x, bottom_y = bbox
+
+            left_x *= self.image_width
+            top_y *= self.image_width
+            right_x *= self.image_width
+            bottom_y *= self.image_width
+
+            right_x = max(left_x, right_x - 1.0)
+            bottom_y = max(top_y, bottom_y - 1.0)
+
+            start_row = int(top_y // tile_width)
+            start_col = int(left_x // tile_width)
+            end_row = int(bottom_y // tile_width)
+            end_col = int(right_x // tile_width)
+
             for row in range(start_row, end_row + 1):
                 for col in range(start_col, end_col + 1):
                     selected_tiles_tensor[row * self.ROWS_COUNT + col] = 1.0
