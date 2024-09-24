@@ -29,8 +29,11 @@ class ModelSingle(nn.Module, ModelTools):
         self.fc = nn.Sequential(
             nn.Linear(512 + num_classes, 256),
             nn.ReLU(),
+            nn.BatchNorm1d(256),
             nn.Linear(256, 128),
             nn.ReLU(),
+            nn.BatchNorm1d(128),
+            nn.Dropout(0.25),
             nn.Linear(128, 16)
         )
 
@@ -121,8 +124,7 @@ def train(model: ModelSingle, dataloader: DataLoader, criterion, optimizer, devi
     
     
 class ObjectDetectionDataset(Dataset):
-    def __read_file(self, idx: int) -> tuple[Image.Image, torch.Tensor]:
-        print(self.images[idx])
+    def __read_file(self, idx: int) -> tuple[Image.Image, list[list[int]], torch.Tensor, list[int]]:
         image_path = os.path.join(self.images_dir, self.images[idx])
         label_path = os.path.join(self.labels_dir, self.images[idx].replace('.jpg', '.txt'))
 
@@ -132,35 +134,37 @@ class ObjectDetectionDataset(Dataset):
             labels = [list(map(float, label.split(' '))) for label in labels if label]
             class_ids = [int(label[0]) for label in labels]
             # take edge points of the cluster of points and turn them into bbox
-            bboxes = [np.array([min(label[1::2]), min(label[2::2]), max(label[1::2]), max(label[2::2])]) * self.image_width for label in labels]
+            bboxes = [np.array([min(label[1::2]), min(label[2::2]), max(label[1::2]), max(label[2::2])]) * self.image_width
+                        if len(label) > 5 else np.array([label[1] - label[3] / 2, label[2] - label[4] / 2, label[1] + label[3] / 2, label[2] + label[4] / 2]) * self.image_width for label in labels]
+
+
             bboxes = [[x1, y1, x2, y2] for x1, y1, x2, y2 in bboxes if x2 - x1 > self.EPSILON and y2 - y1 > self.EPSILON]
 
         class_ids = [] if len(bboxes) == 0 else [class_ids[0]] * len(bboxes) 
-        
         class_tensors = torch.zeros((self.CLASS_COUNT))
         if len(class_ids) > 0:
             first_class_id = class_ids[0]
             class_tensors[first_class_id] = 1.0
         
+        image = cv2.imread(image_path)
+        
+        return image, bboxes, class_tensors, class_ids
+
+    def __augment(self, image: np.ndarray, bboxes: list[list[int]], class_ids: list[int], class_tensors: torch.Tensor) -> tuple[Image.Image, torch.Tensor]:
         # Select correct tiles
         tile_width = self.image_width / self.ROWS_COUNT
         selected_tiles_tensor = torch.zeros(self.ROWS_COUNT * self.ROWS_COUNT)
 
         # images
-        image = cv2.imread(image_path)
         transformed = self.transform(image=image, bboxes=bboxes, class_labels=class_ids)
         image = transformed['image']
+        # image_copy = image.copy()
         bboxes = transformed['bboxes']
 
         image = self.pytorch_transform(image)
 
         for bbox in bboxes:
             left_x, top_y, right_x, bottom_y = bbox
-
-            # left_x *= self.image_width
-            # top_y *= self.image_width
-            # right_x *= self.image_width
-            # bottom_y *= self.image_width
 
             right_x = max(left_x, right_x - 1.0)
             bottom_y = max(top_y, bottom_y - 1.0)
@@ -175,14 +179,35 @@ class ObjectDetectionDataset(Dataset):
                     selected_tiles_tensor[row * self.ROWS_COUNT + col] = 1.0
         
         target = torch.cat((class_tensors, selected_tiles_tensor))
-        # return image.to(device), target.to(device)
+        
+        # # visualize bboxes on the picture
+        # for bbox in bboxes:
+        #     left_x, top_y, right_x, bottom_y = bbox
+        #     cv2.rectangle(image_copy, (int(left_x), int(top_y)), (int(right_x), int(bottom_y)), (255, 0, 0), 2)
+
+        # for row in range(self.ROWS_COUNT):
+        #     for col in range(self.ROWS_COUNT):
+        #         if selected_tiles_tensor[row * self.ROWS_COUNT + col] > 0.5:
+        #             cv2.rectangle(image_copy, (int(col * tile_width), int(row * tile_width)), (int((col + 1) * tile_width), int((row + 1) * tile_width)), (0, 255, 0), 2)
+
+        # image_copy = cv2.resize(image_copy, (self.image_width, self.image_width))
+        # # if iage label contains 11 as class id, then show the image
+        # print(class_ids)
+        # if len(class_ids) > 0 and class_ids[0] == 10:
+        #     print(self.images[idx])
+        #     cv2.imshow('image', image_copy)
+        #     cv2.waitKey(0)
+        #     cv2.destroyAllWindows
+
         return image, target
     
     def __fill_cache(self):
         for idx in range(len(self.images)):
-            image, target = self.__read_file(idx)
-            self.images_tensors_cache[idx] = image
-            self.labels_tensors_cache[idx] = target
+            image, bboxes, class_tensors, class_ids = self.__read_file(idx)
+            self.images_cache[idx] = image
+            self.bboxes_cache[idx] = bboxes
+            self.class_tensors_cache[idx] = class_tensors
+            self.class_ids_cache[idx] = class_ids
 
     def __init__(self, images_dir, labels_dir, image_width: int = 450) -> None:
         self.EPSILON = 1e-7
@@ -194,7 +219,7 @@ class ObjectDetectionDataset(Dataset):
         self.transform = A.Compose([
                 A.Resize(image_width, image_width),
                 A.HorizontalFlip(p=0.5),
-                A.Affine(scale=(0.8, 1.2), rotate=(-10, 10), shear=(-0.3, 0.3), p=0.5),
+                A.Affine(scale=(0.6, 1.4), rotate=(-20, 20), shear=(-5, 5)),
                 A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
             ], bbox_params=A.BboxParams(format='pascal_voc', label_fields=['class_labels'])
         )
@@ -207,8 +232,10 @@ class ObjectDetectionDataset(Dataset):
         self.labels_dir = labels_dir
         self.images = os.listdir(images_dir)
 
-        self.images_tensors_cache = {}
-        self.labels_tensors_cache = {}
+        self.images_cache = {}
+        self.bboxes_cache = {}
+        self.class_tensors_cache = {}
+        self.class_ids_cache = {}
 
         self.__fill_cache()
 
@@ -216,12 +243,16 @@ class ObjectDetectionDataset(Dataset):
         return len(self.images)
 
     def __getitem__(self, idx):
-        if idx not in self.images_tensors_cache:
-            image, target = self.__read_file(idx)
-            self.images_tensors_cache[idx] = image
-            self.labels_tensors_cache[idx] = target
+        if idx not in self.images_cache:
+            image, bboxes, class_tensors, class_ids = self.__read_file(idx)
+            self.images_cache[idx] = image
+            self.bboxes_cache[idx] = bboxes
+            self.class_tensors_cache[idx] = class_tensors
+            self.class_ids_cache[idx] = class_ids
         else:
-            image = self.images_tensors_cache[idx]
-            target = self.labels_tensors_cache[idx]
+            image = self.images_cache[idx]
+            bboxes = self.bboxes_cache[idx]
+            class_tensors = self.class_tensors_cache[idx]
+            class_ids = self.class_ids_cache[idx]
 
-        return image, target
+        return self.__augment(image, bboxes, class_ids, class_tensors)

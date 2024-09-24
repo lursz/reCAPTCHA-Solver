@@ -15,7 +15,7 @@ print(f"Using device: {device}")
 CAPTCHA_DATASET_DIR: str= 'input/images/'
 CAPTCHA_RESULT_MODELS_DIR: str= 'results/'
 FREEZED_EPOCHS = 10
-EPOCHS = 100
+EPOCHS = 150
 
 
 class TrainerMulti:
