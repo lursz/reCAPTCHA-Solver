@@ -21,30 +21,38 @@ class ModelSingle(nn.Module, ModelTools):
         super(ModelSingle, self).__init__()
         self.num_classes = num_classes
 
-        self.resnet = models.resnet18(pretrained=True)
+        self.resnet = nn.Sequential(*list(models.resnet18(pretrained=True).children())[:-2])
         for param in self.resnet.parameters():  # Freeze ResNet layers
             param.requires_grad = False
-        self.resnet.fc = nn.Identity() # remove the final fully connected layer
+
+        self.avgpool_4x4 = nn.Sequential(
+            nn.AdaptiveAvgPool2d((4, 4)),
+            nn.Conv2d(512, 64, 1),
+            nn.ReLU(),
+            nn.BatchNorm2d(64)
+        )
         
         self.fc = nn.Sequential(
-            nn.Linear(512 + num_classes, 256),
-            nn.ReLU(),
-            nn.BatchNorm1d(256),
-            nn.Linear(256, 128),
+            nn.Linear(64 * 16 + num_classes, 128),
             nn.ReLU(),
             nn.BatchNorm1d(128),
-            nn.Dropout(0.25),
             nn.Linear(128, 16)
         )
-
+        
     def forward(self, img: torch.Tensor, class_encoded: torch.Tensor):
         x = self.resnet(img)
+        x = self.avgpool_4x4(x)
+        x = torch.flatten(x, 1)
         x = torch.cat((x, class_encoded), dim=1) # concatenate class of the object we're looking for
         x = self.fc(x)
         return x
 
     def unfreeze_last_resnet_layer(self):
-        for param in self.resnet.layer4.parameters():
+        for param in self.resnet[-1].parameters():
+            param.requires_grad = True
+
+    def unfreeze_second_to_last_resnet_layer(self):
+        for param in self.resnet[-2].parameters():
             param.requires_grad = True
     
 
@@ -146,7 +154,9 @@ class ObjectDetectionDataset(Dataset):
             first_class_id = class_ids[0]
             class_tensors[first_class_id] = 1.0
         
-        image = cv2.imread(image_path)
+        image = cv2.imread(image_path).astype(np.float32)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        image /= 255.0
         
         return image, bboxes, class_tensors, class_ids
 
@@ -191,7 +201,6 @@ class ObjectDetectionDataset(Dataset):
         #             cv2.rectangle(image_copy, (int(col * tile_width), int(row * tile_width)), (int((col + 1) * tile_width), int((row + 1) * tile_width)), (0, 255, 0), 2)
 
         # image_copy = cv2.resize(image_copy, (self.image_width, self.image_width))
-        # # if iage label contains 11 as class id, then show the image
         # print(class_ids)
         # if len(class_ids) > 0 and class_ids[0] == 10:
         #     print(self.images[idx])
