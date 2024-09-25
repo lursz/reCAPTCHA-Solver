@@ -15,7 +15,7 @@ print(f"Using device: {device}")
 CAPTCHA_DATASET_DIR: str= 'input/images/'
 CAPTCHA_RESULT_MODELS_DIR: str= 'results/'
 FREEZED_EPOCHS = 20
-UNFREEZED_LAST_EPOCHS = 100
+UNFREEZED_LAST_EPOCHS = 200
 EPOCHS = 10
 
 
@@ -59,7 +59,7 @@ class TrainerMulti:
         optimizer = optim.Adam(baseline_model.parameters(), lr=0.001)
         history = training_loop(baseline_model, criterion, optimizer, self.dataloaders, self.image_datasets, EPOCHS)
 
-        max_accuracy = np.int32(max(history['val_accuracy']) * 100)
+        max_accuracy = np.int32(max(history['val_accuracy'].cpu()) * 100)
         torch.save(baseline_model.state_dict(), f'{CAPTCHA_RESULT_MODELS_DIR}/model_multi_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")}_{max_accuracy}.pt')
         baseline_model.plot_accuracy_from_history(history)  #, path="accuracy_plot.png")
 
@@ -81,9 +81,9 @@ class TrainerMulti:
 class TrainerSingle:
     def __init__(self) -> None:
         self.datasets = {
-            'train': ObjectDetectionDataset(images_dir='input/yolo/train/images', labels_dir='input/yolo/train/labels'),
-            'val': ObjectDetectionDataset(images_dir='input/yolo/valid/images', labels_dir='input/yolo/valid/labels'),
-            'test': ObjectDetectionDataset(images_dir='input/yolo/test/images', labels_dir='input/yolo/test/labels')
+            'train': ObjectDetectionDataset(images_dir='input/yolo/train/images', labels_dir='input/yolo/train/labels', is_training=True),
+            'val': ObjectDetectionDataset(images_dir='input/yolo/valid/images', labels_dir='input/yolo/valid/labels', is_training=False),
+            'test': ObjectDetectionDataset(images_dir='input/yolo/test/images', labels_dir='input/yolo/test/labels', is_training=False)
         }
         
         self.dataloaders = {
@@ -103,7 +103,7 @@ class TrainerSingle:
         train(model, self.dataloaders, criterion, optimizer, device, UNFREEZED_LAST_EPOCHS, self.datasets)
         # model.unfreeze_second_to_last_resnet_layer()
         history = train(model, self.dataloaders, criterion, optimizer, device, EPOCHS, self.datasets)
-        max_accuracy = np.int32(max(history['val_accuracy']) * 100)
+        max_accuracy = np.int32(max(history['val_accuracy'].cpu()) * 100)
         torch.save(model.state_dict(), f'{CAPTCHA_RESULT_MODELS_DIR}/model_single_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")}_{max_accuracy}.pt')
         model.plot_accuracy_from_history(history)  #, path="accuracy_plot.png")
         

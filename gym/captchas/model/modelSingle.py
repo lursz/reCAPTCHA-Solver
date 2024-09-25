@@ -170,9 +170,8 @@ class ObjectDetectionDataset(Dataset):
         image = transformed['image']
         # image_copy = image.copy()
         bboxes = transformed['bboxes']
-
         image = self.pytorch_transform(image)
-
+    
         for bbox in bboxes:
             left_x, top_y, right_x, bottom_y = bbox
 
@@ -210,7 +209,7 @@ class ObjectDetectionDataset(Dataset):
 
         return image, target
     
-    def __fill_cache(self):
+    def __fill_cache(self) -> None:
         for idx in range(len(self.images)):
             image, bboxes, class_tensors, class_ids = self.__read_file(idx)
             self.images_cache[idx] = image
@@ -218,20 +217,26 @@ class ObjectDetectionDataset(Dataset):
             self.class_tensors_cache[idx] = class_tensors
             self.class_ids_cache[idx] = class_ids
 
-    def __init__(self, images_dir, labels_dir, image_width: int = 450) -> None:
-        self.EPSILON = 1e-7
+    def __init__(self, images_dir: str, labels_dir: str,  is_training: bool, image_width: int = 450) -> None:
+        self.EPSILON: float = 1e-7
+        self.CLASS_COUNT: int = 11
+        self.ROWS_COUNT: int = 4
+        self.image_width: int = image_width
 
-        self.CLASS_COUNT = 11
-        self.ROWS_COUNT = 4
-        self.image_width = image_width
-
-        self.transform = A.Compose([
-                A.Resize(image_width, image_width),
-                A.HorizontalFlip(p=0.5),
-                A.Affine(scale=(0.6, 1.4), rotate=(-20, 20), shear=(-5, 5)),
-                A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-            ], bbox_params=A.BboxParams(format='pascal_voc', label_fields=['class_labels'])
-        )
+        if is_training:
+            self.transform = A.Compose([
+                    A.Resize(image_width, image_width),
+                    A.HorizontalFlip(p=0.5),
+                    A.Affine(scale=(0.6, 1.4), shear=(-5, 5)),
+                    A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+                ], bbox_params=A.BboxParams(format='pascal_voc', label_fields=['class_labels'])
+            )
+        else:            
+            self.transform = A.Compose([
+                    A.Resize(image_width, image_width),
+                    A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+                ], bbox_params=A.BboxParams(format='pascal_voc', label_fields=['class_labels'])
+            )
         self.pytorch_transform = transforms.Compose([
             transforms.ToPILImage(),
             transforms.ToTensor()
@@ -248,7 +253,7 @@ class ObjectDetectionDataset(Dataset):
 
         self.__fill_cache()
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.images)
 
     def __getitem__(self, idx):
