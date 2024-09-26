@@ -16,7 +16,7 @@ import albumentations as A
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
-class ModelSingle(nn.Module, ModelTools):
+class ModelSingleWithConv(nn.Module, ModelTools):
     def __init__(self, num_classes: int):
         super(ModelSingle, self).__init__()
         self.num_classes = num_classes
@@ -70,6 +70,45 @@ class ModelSingle(nn.Module, ModelTools):
             param.requires_grad = True
     
 
+
+class ModelSingle(nn.Module, ModelTools):
+    def __init__(self, num_classes: int):
+        super(ModelSingle, self).__init__()
+        self.num_classes = num_classes
+
+        self.resnet = models.resnet18(pretrained=True)
+        for param in self.resnet.parameters():  # Freeze ResNet layers
+            param.requires_grad = False
+        self.resnet.fc = nn.Identity() # remove the final fully connected layer
+        
+        self.fc = nn.Sequential(
+            nn.Linear(512 + num_classes, 256),
+            nn.ReLU(),
+            nn.BatchNorm1d(256),
+            nn.Linear(256, 128),
+            nn.ReLU(),
+            nn.BatchNorm1d(128),
+            # nn.Dropout(0.1),
+            nn.Linear(128, 16),
+            nn.Sigmoid()
+        )
+
+    def forward(self, img: torch.Tensor, class_encoded: torch.Tensor):
+        x = self.resnet(img)
+        x = torch.cat((x, class_encoded), dim=1) # concatenate class of the object we're looking for
+        x = self.fc(x)
+        return x
+
+    def unfreeze_last_resnet_layer(self):
+        for param in self.resnet.layer4.parameters():
+            param.requires_grad = True
+
+    def unfreeze_second_to_last_resnet_layer(self):
+        for param in self.resnet.layer3.parameters():
+            param.requires_grad = True
+    
+    
+
 def train(model: ModelSingle, dataloader: DataLoader, criterion, optimizer, device, EPOCHS: int, image_datasets):
     accuracy_history: list = []
     loss_history: list = []
@@ -96,7 +135,7 @@ def train(model: ModelSingle, dataloader: DataLoader, criterion, optimizer, devi
             loss.backward()
             optimizer.step()
 
-            running_loss += loss.item()
+            running_loss += loss.cpu().item() * images.cpu().size(0)
 
             incorrects_count = torch.sum((outputs > 0.5) != (targets[:, model.num_classes:] > 0.5))
             running_corrects += len(images) * 16 - incorrects_count
@@ -105,7 +144,10 @@ def train(model: ModelSingle, dataloader: DataLoader, criterion, optimizer, devi
         accuracy_history.append(epoch_acc)
         loss_history.append(epoch_loss)
         
-        # Validation
+        # Validation (only every 5th epoch)
+        if epoch % 5 != 4:
+            continue
+        
         model.eval()
         val_running_loss = 0.0
         val_running_corrects = 0
@@ -119,7 +161,7 @@ def train(model: ModelSingle, dataloader: DataLoader, criterion, optimizer, devi
 
                 # print(labels[:, model.num_classes:], outputs)
                 
-                val_running_loss += val_loss.cpu().item() * inputs.size(0)
+                val_running_loss += val_loss.cpu().item() * inputs.cpu().size(0)
 
                 incorrects_count = torch.sum((outputs > 0.5) != (labels[:, model.num_classes:] > 0.5))
                 val_running_corrects += len(inputs) * 16 - incorrects_count
@@ -127,8 +169,10 @@ def train(model: ModelSingle, dataloader: DataLoader, criterion, optimizer, devi
 
         val_epoch_loss = val_running_loss / len(image_datasets['val'])
         val_epoch_acc = val_running_corrects / (len(image_datasets['val']) * 16)
-        val_accuracy_history.append(val_epoch_acc)
-        val_loss_history.append(val_epoch_loss)
+
+        for _ in range(5):
+            val_accuracy_history.append(val_epoch_acc)
+            val_loss_history.append(val_epoch_loss)
 
         print(f'Epoch {epoch+1}/{EPOCHS} Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
         print(f'Validation Loss: {val_epoch_loss:.4f} Acc: {val_epoch_acc:.4f}')
@@ -242,7 +286,7 @@ class ObjectDetectionDataset(Dataset):
                     # A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
                 ], bbox_params=A.BboxParams(format='pascal_voc', label_fields=['class_labels'])
             )
-        else:            
+        else:
             self.transform = A.Compose([
                     A.Resize(image_width, image_width),
                     # A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])

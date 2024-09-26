@@ -14,8 +14,8 @@ class ModelTools:
             
             color = ['b', 'r', 'g', 'c', 'm', 'y'][i % 6]  # Choose color cyclically
             label = labels[i] if labels else f'Model {i+1}'
-            acc = history['accuracy']
-            val_acc = history['val_accuracy']
+            acc = [acc.cpu().item() for acc in history['accuracy']]
+            val_acc = [val_acc.cpu().item() for val_acc in history['val_accuracy']]
             
             plt.plot(epochs, acc, color + 'o', label=f'Training accuracy for {label}')
             plt.plot(epochs, val_acc, color, label=f'Validation accuracy for {label}')
