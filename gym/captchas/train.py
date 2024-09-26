@@ -96,7 +96,7 @@ class TrainerSingle:
 
     def train(self) -> None:
         model = ModelSingle(num_classes=self.NUM_CLASSES)
-        criterion = nn.CrossEntropyLoss()
+        criterion = nn.BCELoss()
         optimizer = optim.Adam(model.parameters(), lr=0.001)
         train(model, self.dataloaders, criterion, optimizer, device, FREEZED_EPOCHS, self.datasets)
         model.unfreeze_last_resnet_layer()

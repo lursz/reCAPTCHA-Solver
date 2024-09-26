@@ -26,24 +26,38 @@ class ModelSingle(nn.Module, ModelTools):
             param.requires_grad = False
 
         self.avgpool_4x4 = nn.Sequential(
-            nn.AdaptiveAvgPool2d((4, 4)),
-            nn.Conv2d(512, 64, 1),
+            nn.Conv2d(512 + num_classes, 512, 3),
             nn.ReLU(),
-            nn.BatchNorm2d(64)
+            nn.BatchNorm2d(512),
+            nn.Conv2d(512, 512, 3),
+            nn.ReLU(),
+            nn.BatchNorm2d(512),
+            nn.Conv2d(512, 512, 3),
+            nn.ReLU(),
+            nn.BatchNorm2d(512),
+            nn.AdaptiveAvgPool2d((4, 4)),
+            nn.Conv2d(512, 256, 1),
+            nn.ReLU(),
+            nn.BatchNorm2d(256),
+            nn.Conv2d(256, 32, 1),
+            nn.ReLU(),
+            nn.BatchNorm2d(32)
         )
         
         self.fc = nn.Sequential(
-            nn.Linear(64 * 16 + num_classes, 128),
+            nn.Linear(32 * 16, 128),
             nn.ReLU(),
             nn.BatchNorm1d(128),
-            nn.Linear(128, 16)
+            nn.Linear(128, 16),
+            nn.Sigmoid()
         )
         
     def forward(self, img: torch.Tensor, class_encoded: torch.Tensor):
         x = self.resnet(img)
+        class_encoded_reshaped = class_encoded.unsqueeze(-1).unsqueeze(-1).expand(-1, -1, 15, 15)
+        x = torch.cat((x, class_encoded_reshaped), dim=1)
         x = self.avgpool_4x4(x)
         x = torch.flatten(x, 1)
-        x = torch.cat((x, class_encoded), dim=1) # concatenate class of the object we're looking for
         x = self.fc(x)
         return x
 
@@ -83,9 +97,8 @@ def train(model: ModelSingle, dataloader: DataLoader, criterion, optimizer, devi
             optimizer.step()
 
             running_loss += loss.item()
-            outputs_sigmoid = torch.sigmoid(outputs)
 
-            incorrects_count = torch.sum((outputs_sigmoid > 0.5) != (targets[:, model.num_classes:] > 0.5))
+            incorrects_count = torch.sum((outputs > 0.5) != (targets[:, model.num_classes:] > 0.5))
             running_corrects += len(images) * 16 - incorrects_count
         epoch_loss = running_loss / len(image_datasets['train'])
         epoch_acc = running_corrects / (len(image_datasets['train']) * 16)
@@ -107,10 +120,10 @@ def train(model: ModelSingle, dataloader: DataLoader, criterion, optimizer, devi
                 # print(labels[:, model.num_classes:], outputs)
                 
                 val_running_loss += val_loss.cpu().item() * inputs.size(0)
-                outputs_sigmoid = torch.sigmoid(outputs)
 
-                incorrects_count = torch.sum((outputs_sigmoid > 0.5) != (labels[:, model.num_classes:] > 0.5))
+                incorrects_count = torch.sum((outputs > 0.5) != (labels[:, model.num_classes:] > 0.5))
                 val_running_corrects += len(inputs) * 16 - incorrects_count
+                # val_running_corrects += incorrects_count == 0
 
         val_epoch_loss = val_running_loss / len(image_datasets['val'])
         val_epoch_acc = val_running_corrects / (len(image_datasets['val']) * 16)
@@ -144,8 +157,6 @@ class ObjectDetectionDataset(Dataset):
             # take edge points of the cluster of points and turn them into bbox
             bboxes = [np.array([min(label[1::2]), min(label[2::2]), max(label[1::2]), max(label[2::2])]) * self.image_width
                         if len(label) > 5 else np.array([label[1] - label[3] / 2, label[2] - label[4] / 2, label[1] + label[3] / 2, label[2] + label[4] / 2]) * self.image_width for label in labels]
-
-
             bboxes = [[x1, y1, x2, y2] for x1, y1, x2, y2 in bboxes if x2 - x1 > self.EPSILON and y2 - y1 > self.EPSILON]
 
         class_ids = [] if len(bboxes) == 0 else [class_ids[0]] * len(bboxes) 
@@ -227,14 +238,14 @@ class ObjectDetectionDataset(Dataset):
             self.transform = A.Compose([
                     A.Resize(image_width, image_width),
                     A.HorizontalFlip(p=0.5),
-                    A.Affine(scale=(0.6, 1.4), shear=(-5, 5)),
-                    A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+                    A.Affine(scale=(0.6, 1.4), shear=(-5, 5), rotate=(-10, 10)),
+                    # A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
                 ], bbox_params=A.BboxParams(format='pascal_voc', label_fields=['class_labels'])
             )
         else:            
             self.transform = A.Compose([
                     A.Resize(image_width, image_width),
-                    A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+                    # A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
                 ], bbox_params=A.BboxParams(format='pascal_voc', label_fields=['class_labels'])
             )
         self.pytorch_transform = transforms.Compose([
