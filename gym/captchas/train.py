@@ -14,9 +14,9 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 CAPTCHA_DATASET_DIR: str= 'input/images/'
 CAPTCHA_RESULT_MODELS_DIR: str= 'results/'
-FREEZED_EPOCHS = 0
-UNFREEZED_LAST_EPOCHS = 0
-EPOCHS = 1
+FREEZED_EPOCHS = 20
+UNFREEZED_LAST_LAYER_EPOCHS = 50
+EPOCHS = 200
 
 
 class TrainerMulti:
@@ -101,7 +101,7 @@ class TrainerSingle:
         train(model, self.dataloaders, criterion, optimizer, device, FREEZED_EPOCHS, self.datasets)
         model.unfreeze_last_resnet_layer()
         optimizer = optim.Adam(model.parameters(), lr=0.0001)
-        history = train(model, self.dataloaders, criterion, optimizer, device, UNFREEZED_LAST_EPOCHS, self.datasets)
+        history = train(model, self.dataloaders, criterion, optimizer, device, UNFREEZED_LAST_LAYER_EPOCHS, self.datasets)
         model.unfreeze_second_to_last_resnet_layer()
         optimizer = optim.Adam(model.parameters(), lr=0.0001)
         history = train(model, self.dataloaders, criterion, optimizer, device, EPOCHS, self.datasets)

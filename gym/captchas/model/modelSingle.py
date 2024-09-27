@@ -165,7 +165,6 @@ def train(model: ModelSingle, dataloader: DataLoader, criterion, optimizer, devi
 
                 incorrects_count = torch.sum((outputs > 0.5) != (labels[:, model.num_classes:] > 0.5))
                 val_running_corrects += len(inputs) * 16 - incorrects_count
-                # val_running_corrects += incorrects_count == 0
 
         val_epoch_loss = val_running_loss / len(image_datasets['val'])
         val_epoch_acc = val_running_corrects / (len(image_datasets['val']) * 16)
