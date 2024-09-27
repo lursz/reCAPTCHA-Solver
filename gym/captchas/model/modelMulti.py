@@ -3,12 +3,10 @@ from torch import nn
 from torch import Tensor
 from torchvision import models
 from tqdm import tqdm
-from gym.captchas.model.modelTools import ModelTools
-
+from model.modelTools import ModelTools
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
-
 
 
 class TunedModel(nn.Module, ModelTools): # 99% accuracy, 93% validation accuracy
@@ -42,22 +40,16 @@ class BaselineModel(nn.Module, ModelTools): # 98% accuracy, 85% validation accur
         self.convolve2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
         self.activation2 = nn.ReLU()
         self.batchnorm2 = nn.BatchNorm2d(64)
-        
-        self.pool1 = nn.MaxPool2d(2, 2) # (64, 75, 75)
-        
+        self.pool1 = nn.MaxPool2d(2, 2) # (64, 75, 75)  
         self.convolve3 = nn.Conv2d(64, 128, kernel_size=3, padding=1)
         self.activation3 = nn.ReLU()
-        
         self.pool2 = nn.MaxPool2d(2, 2) # (128, 37, 37)
-        
         self.convolve4 = nn.Conv2d(128, 128, kernel_size=3, padding=1)
         self.activation4 = nn.ReLU()
         self.batchnorm3 = nn.BatchNorm2d(128)
         self.convolve5 = nn.Conv2d(128, 128, kernel_size=3, padding=1)
         self.activation5 = nn.ReLU()
-        
         self.pool3 = nn.MaxPool2d(3, 3) # (128, 12, 12)
-        
         self.fc1 = nn.Linear(128*12*12, 128)
         self.fc1_activation = nn.ReLU()
         self.fc2 = nn.Linear(128, num_classes)
@@ -70,19 +62,15 @@ class BaselineModel(nn.Module, ModelTools): # 98% accuracy, 85% validation accur
         x = self.activation2(x)
         x = self.batchnorm2(x)
         x = self.pool1(x)
-        
         x = self.convolve3(x)
         x = self.activation3(x)
         x = self.pool2(x)
-        
         x = self.convolve4(x)
         x = self.activation4(x)
         x = self.batchnorm3(x)
         x = self.convolve5(x)
         x = self.activation5(x)
-        
         x = self.pool3(x)
-        
         x = x.view(-1, 128*12*12)
         x = self.fc1(x)
         x = self.fc1_activation(x)
@@ -103,10 +91,10 @@ def training_loop(model, criterion, optimizer, dataloaders, image_datasets, EPOC
         running_loss = 0.0
         running_corrects = 0
         for inputs, labels in tqdm(dataloaders['train']):
-            optimizer.zero_grad()
             inputs = inputs.to(device)
             labels = labels.to(device)
             
+            optimizer.zero_grad()
             outputs = model(inputs)
             loss = criterion(outputs, labels)
             loss.backward()
