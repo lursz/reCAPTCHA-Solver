@@ -12,7 +12,7 @@ print(f"Using device: {device}")
 class TunedModel(nn.Module, ModelTools): # 99% accuracy, 93% validation accuracy
     def __init__(self, num_classes: int):
         super().__init__()
-        self.resnet = models.resnet18(pretrained=True)
+        self.resnet: models.ResNet = models.resnet18(pretrained=True)
         for param in self.resnet.parameters(): # freeze the ResNet layers
             param.requires_grad = False
         for param in self.resnet.layer4.parameters(): # unfreeze the last layer
@@ -32,7 +32,7 @@ class TunedModel(nn.Module, ModelTools): # 99% accuracy, 93% validation accuracy
     
 
 class BaselineModel(nn.Module, ModelTools): # 98% accuracy, 85% validation accuracy
-    def __init__(self, num_classes: int):
+    def __init__(self, num_classes: int) -> None:
         super().__init__()
         self.convolve1 = nn.Conv2d(3, 32, kernel_size=3, padding=1) # (3, 150, 150)
         self.activation1 = nn.ReLU()

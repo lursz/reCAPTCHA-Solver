@@ -13,6 +13,7 @@ from gym.captchas.model.modelMulti import TunedModel
 from gym.mouse.mouseEngine import MouseEngine
 load_dotenv()
 
+
 def main() -> None:
     # Screenshot processing
     gui_agent = GuiAgent()

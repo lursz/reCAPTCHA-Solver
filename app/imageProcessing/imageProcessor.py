@@ -17,7 +17,7 @@ class ImageProcessor:
         plt.imshow(self.img)
         plt.show()
         
-    def process_captcha_image(self, output_folder: str) -> list[np.ndarray]:
+    def process_captcha_image(self, output_folder: str, split: bool) -> list[np.ndarray]:
         self.crop_image_to_captcha()
         self.cut_captcha_pics()
         self.polishing_the_pics()

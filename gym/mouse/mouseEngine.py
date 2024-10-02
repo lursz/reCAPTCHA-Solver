@@ -25,11 +25,8 @@ class MouseEngine:
     def move_mouse_all_the_way(self, target: np.ndarray, speed: float = 30.0) -> None:
         self.target = target
         self.speed = speed
-        
         while not self.is_mouse_close():
-            self.move_the_mouse_one_step()
-            pyautogui.sleep(0.001)
-            
+            self.move_the_mouse_one_step()            
         pyautogui.click()
         
         
