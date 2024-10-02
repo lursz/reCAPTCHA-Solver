@@ -3,7 +3,7 @@ from torch import nn
 from torch import Tensor
 from torchvision import models
 from tqdm import tqdm
-from model.modelTools import ModelTools
+from .modelTools import ModelTools
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")

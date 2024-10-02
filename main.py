@@ -23,12 +23,14 @@ def main() -> None:
     ocr = OCR()
     filename = gui_agent.take_screenshot(os.getenv('SCREENSHOTS_FOLDER'))
     sleep(1)
-    header_label = ocr.ocr_from_image(os.getenv('CAPTCHA_HEADER_IMG'))
-    header_label = ocr.normalize_label(header_label)
-    print("Header label", header_label)
+
     
     image_processor = ImageProcessor(filename)
     list_of_img =  image_processor.process_captcha_image(os.getenv('CAPTCHA_PICS_FOLDER'))
+    
+    header_label = ocr.ocr_from_image(os.getenv('CAPTCHA_HEADER_IMG'))
+    header_label = ocr.normalize_label(header_label)
+    print("Header label", header_label)
     if image_processor.multiple_pics_mode:
         data_transform = DataTransformMulti()
         tensor_list = data_transform.pictures_to_tensors(list_of_img)

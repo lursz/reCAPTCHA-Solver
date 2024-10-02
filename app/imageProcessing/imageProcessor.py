@@ -19,16 +19,16 @@ class ImageProcessor:
         plt.imshow(self.img)
         plt.show()
         
-    def process_captcha_image(self, output_folder: str, split: bool) -> list[np.ndarray] | np.ndarray:
+    def process_captcha_image(self, output_folder: str) -> list[np.ndarray] | np.ndarray:
         self.crop_image_to_captcha()
         self.cut_captcha_pics()
         self.polishing_the_pics()
-        if self.list_of_pics < 10:
+        if len(self.list_of_pics) < 10:
             self.save_all_pics(output_folder)
             return self.list_of_pics
         self.multiple_pics_mode = False
         self.merge_pics()
-        self.save_merged_image()
+        self.save_merged_image(output_folder)
         return self.merged_picture
 
     
@@ -158,20 +158,29 @@ class ImageProcessor:
             
     def merge_pics(self) -> None:
         # Merge the pieces to form a single image, remember thay are in 4x4 grid
-        self.merged_picture = np.zeros((self.height * 4, self.width * 4, 3), dtype=np.uint8)
+        print(self.list_of_pics[0].shape, len(self.list_of_pics))
+        tile_height, tile_width, _ = self.list_of_pics[0].shape
+        plt.imshow(self.list_of_pics[1])
+        plt.show()
+        
+        self.merged_picture = np.zeros((tile_height * 4, tile_width * 4, 3), dtype=np.uint8)
         for i, pic in enumerate(self.list_of_pics):
             row = i // 4
             col = i % 4
-            start_y = row * self.height
-            end_y = (row + 1) * self.height
-            start_x = col * self.width
-            end_x = (col + 1) * self.width
+            start_y = row * tile_height
+            end_y = (row + 1) * tile_height
+            start_x = col * tile_width
+            end_x = (col + 1) * tile_width
             self.merged_picture[start_y:end_y, start_x:end_x] = pic
 
         # show the pic using cv2
         cv2.imshow("Merged Picture", self.merged_picture)
         
     def save_merged_image(self, path: str) -> None:
+        if not os.path.exists(path):
+            os.makedirs(path)
+        cv2.imwrite(f"{path}/header.png", self.header_img)
+        
         if not os.path.exists(path):
             os.makedirs(path)
         cv2.imwrite(f"{path}/merged.png", self.merged_picture)

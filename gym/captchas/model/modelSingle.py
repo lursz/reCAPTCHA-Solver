@@ -10,7 +10,7 @@ from torch.utils.data import Dataset, DataLoader
 from PIL import Image
 import cv2
 import numpy as np
-from model.modelTools import ModelTools
+from .modelTools import ModelTools
 import albumentations as A
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
