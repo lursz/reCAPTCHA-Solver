@@ -5,24 +5,33 @@ import matplotlib.pyplot as plt
 
 class ImageProcessor:
     def __init__(self, path: str) -> None:
-        self.path = path
+        self.multiple_pics_mode: bool = True
+        self.path: str = path
         self.img = cv2.imread(path)
         self.img_cropped = None
         self.header_img = None
         self.list_of_pics = None
         self.height = None 
         self.width = None
+        self.merged_picture = None
         
     def show_image(self) -> None:
         plt.imshow(self.img)
         plt.show()
         
-    def process_captcha_image(self, output_folder: str, split: bool) -> list[np.ndarray]:
+    def process_captcha_image(self, output_folder: str, split: bool) -> list[np.ndarray] | np.ndarray:
         self.crop_image_to_captcha()
         self.cut_captcha_pics()
         self.polishing_the_pics()
-        self.save_all_pics(output_folder)
-        return self.list_of_pics
+        if self.list_of_pics < 10:
+            self.save_all_pics(output_folder)
+            return self.list_of_pics
+        self.multiple_pics_mode = False
+        self.merge_pics()
+        self.save_merged_image()
+        return self.merged_picture
+
+    
     
     def crop_image_to_captcha(self) -> np.ndarray:
         self.height, self.width, _ = self.img.shape
@@ -61,7 +70,7 @@ class ImageProcessor:
 
         # Crop the image to the bounding box of the largest connected component
         self.img_cropped = self.img[min_y:max_y, min_x:max_x]
-
+        
     def cut_captcha_pics(self):
         # background areas
         captcha_background = (self.img_cropped == 255)[..., 0]
@@ -122,7 +131,7 @@ class ImageProcessor:
                 piece = self.img_cropped[start_y:end_y, start_x:end_x]
                 self.list_of_pics.append(piece)
        
-            
+       
     def polishing_the_pics(self) -> None:
         # Process each piece to remove background lines
         processed_pieces = []
@@ -146,6 +155,27 @@ class ImageProcessor:
             # Crop the piece to remove lines
             processed_piece = piece[selected_ys, :][:, selected_xs]
             processed_pieces.append(processed_piece)
+            
+    def merge_pics(self) -> None:
+        # Merge the pieces to form a single image, remember thay are in 4x4 grid
+        self.merged_picture = np.zeros((self.height * 4, self.width * 4, 3), dtype=np.uint8)
+        for i, pic in enumerate(self.list_of_pics):
+            row = i // 4
+            col = i % 4
+            start_y = row * self.height
+            end_y = (row + 1) * self.height
+            start_x = col * self.width
+            end_x = (col + 1) * self.width
+            self.merged_picture[start_y:end_y, start_x:end_x] = pic
+
+        # show the pic using cv2
+        cv2.imshow("Merged Picture", self.merged_picture)
+        
+    def save_merged_image(self, path: str) -> None:
+        if not os.path.exists(path):
+            os.makedirs(path)
+        cv2.imwrite(f"{path}/merged.png", self.merged_picture)
+        
 
     def save_all_pics(self, path: str) -> None:
         if not os.path.exists(path):
