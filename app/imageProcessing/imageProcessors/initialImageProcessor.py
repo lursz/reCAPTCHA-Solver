@@ -3,7 +3,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-class ImageProcessor:
+class InitialImageProcessor:
     def __init__(self, path: str) -> None:
         self.multiple_pics_mode: bool = True
         self.path: str = path
@@ -11,33 +11,16 @@ class ImageProcessor:
         self.img_cropped = None
         self.header_img = None
         self.list_of_pics = None
-        self.height = None 
-        self.width = None
-        self.merged_picture = None
         
     def show_image(self) -> None:
         plt.imshow(self.img)
         plt.show()
         
-    def process_captcha_image(self, output_folder: str) -> list[np.ndarray] | np.ndarray:
-        self.crop_image_to_captcha()
-        self.cut_captcha_pics()
-        self.polishing_the_pics()
-        if len(self.list_of_pics) < 10:
-            self.save_all_pics(output_folder)
-            return self.list_of_pics
-        self.multiple_pics_mode = False
-        self.merge_pics()
-        self.save_merged_image(output_folder)
-        return self.merged_picture
-
-    
-    
     def crop_image_to_captcha(self) -> np.ndarray:
-        self.height, self.width, _ = self.img.shape
+        height, width, _ = self.img.shape
 
         # Morphological operations
-        kernel_size = self.width // 3
+        kernel_size = width // 3
         kernel = np.ones((kernel_size, kernel_size), np.uint8)
         img_eroded = cv2.erode(self.img, kernel)
         img_dilated = cv2.dilate(self.img, kernel)
@@ -162,47 +145,12 @@ class ImageProcessor:
 
             processed_pieces.append((processed_piece_area, processed_piece))
             
-        # select only correct tiles
+        # select only large tiles, get rid of trash
         self.list_of_pics = []
         half_max_area = int(max_area * 0.9)
         
         for area, piece in processed_pieces:
             if area >= half_max_area:
                 self.list_of_pics.append(piece)
-            
-            
-    def merge_pics(self) -> None:
-        # Merge the pieces to form a single image, remember thay are in 4x4 grid
-        tile_height, tile_width, _ = self.list_of_pics[0].shape
-        
-        self.merged_picture = np.zeros((tile_height * 4, tile_width * 4, 3), dtype=np.uint8)
-        for i, pic in enumerate(self.list_of_pics):
-            row = i // 4
-            col = i % 4
-            start_y = row * tile_height
-            end_y = (row + 1) * tile_height
-            start_x = col * tile_width
-            end_x = (col + 1) * tile_width
-            self.merged_picture[start_y:end_y, start_x:end_x] = pic
-
-        # show the pic using cv2
-        # plt.imshow(self.merged_picture)
-        # plt.show()
-        
-    def save_merged_image(self, path: str) -> None:
-        if not os.path.exists(path):
-            os.makedirs(path)
-        cv2.imwrite(f"{path}/header.png", self.header_img)
-        
-        if not os.path.exists(path):
-            os.makedirs(path)
-        cv2.imwrite(f"{path}/merged.png", self.merged_picture)
-        
-
-    def save_all_pics(self, path: str) -> None:
-        if not os.path.exists(path):
-            os.makedirs(path)
-            
-        cv2.imwrite(f"{path}/header.png", self.header_img)
-        for i, pic in enumerate(self.list_of_pics):
-            cv2.imwrite(f"{path}/pic_{i}.png", pic)
+                
+        self.multiple_pics_mode = len(self.list_of_pics) <= 10
