@@ -135,6 +135,7 @@ class ImageProcessor:
     def polishing_the_pics(self) -> None:
         # Process each piece to remove background lines
         processed_pieces = []
+        max_area = 0
         for piece in self.list_of_pics:
             piece_height, piece_width = piece.shape[:2]
             
@@ -154,14 +155,25 @@ class ImageProcessor:
             
             # Crop the piece to remove lines
             processed_piece = piece[selected_ys, :][:, selected_xs]
-            processed_pieces.append(processed_piece)
+            
+            processed_piece_height, processed_piece_width, _ = processed_piece.shape
+            processed_piece_area = processed_piece_height * processed_piece_width
+            max_area = max(max_area, processed_piece_area)
+
+            processed_pieces.append((processed_piece_area, processed_piece))
+            
+        # select only correct tiles
+        self.list_of_pics = []
+        half_max_area = int(max_area * 0.9)
+        
+        for area, piece in processed_pieces:
+            if area >= half_max_area:
+                self.list_of_pics.append(piece)
+            
             
     def merge_pics(self) -> None:
         # Merge the pieces to form a single image, remember thay are in 4x4 grid
-        print(self.list_of_pics[0].shape, len(self.list_of_pics))
         tile_height, tile_width, _ = self.list_of_pics[0].shape
-        plt.imshow(self.list_of_pics[1])
-        plt.show()
         
         self.merged_picture = np.zeros((tile_height * 4, tile_width * 4, 3), dtype=np.uint8)
         for i, pic in enumerate(self.list_of_pics):
@@ -174,7 +186,8 @@ class ImageProcessor:
             self.merged_picture[start_y:end_y, start_x:end_x] = pic
 
         # show the pic using cv2
-        cv2.imshow("Merged Picture", self.merged_picture)
+        # plt.imshow(self.merged_picture)
+        # plt.show()
         
     def save_merged_image(self, path: str) -> None:
         if not os.path.exists(path):

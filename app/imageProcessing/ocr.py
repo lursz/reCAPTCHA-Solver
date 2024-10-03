@@ -18,4 +18,4 @@ class OCR:
         
     def normalize_label(self, label: str) -> str:
         label = label.lower()
-        return label if label[-1] != 's' else label[:-1]
+        return label.strip()
