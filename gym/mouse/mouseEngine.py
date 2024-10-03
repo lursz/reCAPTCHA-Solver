@@ -4,8 +4,8 @@ import numpy as np
 class MouseEngine:
     def __init__(self) -> None:
         self.target: tuple = None
-        self.speed: int = 30.0
-        self.max_acceleration: float = 1.5
+        self.speed: int = 260.0
+        self.max_acceleration: float = 35.5
         self.dt = 1.0
         self.mouse_position = np.array(pyautogui.position(), dtype=float)
         self.mouse_velocity = np.random.rand(2) * 10 - 5
@@ -56,7 +56,7 @@ class MouseEngine:
         acceleration = velocity_difference
         acceleration_magnitude = np.linalg.norm(acceleration)
         
-        self.mouse_velocity += acceleration * self.dt + np.random.normal(0, acceleration_magnitude, 2)
+        self.mouse_velocity += acceleration * self.dt + np.random.normal(0, acceleration_magnitude * 0.3, 2)
         self.mouse_position += self.mouse_velocity * self.dt
         pyautogui.moveTo(*self.mouse_position.astype(int))
         

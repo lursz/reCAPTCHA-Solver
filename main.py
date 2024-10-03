@@ -65,7 +65,7 @@ def main() -> None:
         model.load_state_dict(torch.load(os.getenv('CAPTCHA_MODEL_SINGLE'), map_location=torch.device('cpu')))
         model.eval()
         
-        THRESHOLD = 0.4
+        THRESHOLD = 0.5
         
         class_tensor = torch.zeros(1, 11)
         class_tensor[0, label_index] = 1
