@@ -2,16 +2,12 @@ from .baseImageProcessor import BaseImageProcessor
 import cv2
 import os
 import numpy as np
-import matplotlib.pyplot as plt
 
 
 class MultiimageProcessor(BaseImageProcessor):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, img_cropped: np.ndarray, header_img: np.ndarray, list_of_pics: list[np.ndarray]) -> None:
+        super().__init__( img_cropped, header_img, list_of_pics)
         self.multiple_pics_mode: bool = True
-        self.img_cropped = None
-        self.header_img = None
-        self.list_of_pics = None
 
     def further_process_captcha_image(self, output_folder: str) -> list[np.ndarray]:
         self.save_pics(output_folder)

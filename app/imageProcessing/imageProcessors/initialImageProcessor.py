@@ -1,5 +1,4 @@
 import cv2
-import os
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -16,7 +15,7 @@ class InitialImageProcessor:
         plt.imshow(self.img)
         plt.show()
         
-    def crop_image_to_captcha(self) -> np.ndarray:
+    def crop_image_to_captcha(self) -> None:
         height, width, _ = self.img.shape
 
         # Morphological operations
@@ -55,7 +54,6 @@ class InitialImageProcessor:
         self.img_cropped = self.img[min_y:max_y, min_x:max_x]
         
     def cut_captcha_pics(self):
-        # background areas
         captcha_background = (self.img_cropped == 255)[..., 0]
         height, width = captcha_background.shape
 

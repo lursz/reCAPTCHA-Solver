@@ -10,6 +10,7 @@ class DataTransform(ABC):
         tensor_list = [self.data_transform(img) for img in pics]
         return tensor_list
     
+    
 class DataTransformSingle(DataTransform):
     def __init__(self) -> None:
         self.data_transform = transforms.Compose([

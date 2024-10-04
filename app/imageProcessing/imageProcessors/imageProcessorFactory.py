@@ -24,20 +24,14 @@ class ImageProcessorFactory:
             return self.return_single_processor()
         
     def return_multi_processor(self) -> MultiimageProcessor:
-        processor = MultiimageProcessor()
-        processor.img_cropped = self.image_processor.img_cropped
-        processor.header_img = self.image_processor.header_img
-        processor.list_of_pics = self.image_processor.list_of_pics
+        processor = MultiimageProcessor(img_cropped=self.image_processor.img_cropped, 
+                                        header_img=self.image_processor.header_img, 
+                                        list_of_pics=self.image_processor.list_of_pics)
         return processor
     
     
     def return_single_processor(self) -> SingleImageProcessor:
-        processor = SingleImageProcessor()
-        processor.img_cropped = self.image_processor.img_cropped
-        processor.header_img = self.image_processor.header_img
-        processor.list_of_pics = self.image_processor.list_of_pics
+        processor = SingleImageProcessor(img_cropped=self.image_processor.img_cropped, 
+                                         header_img=self.image_processor.header_img, 
+                                         list_of_pics=self.image_processor.list_of_pics)
         return processor
-        
-    
-    
-        

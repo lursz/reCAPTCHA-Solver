@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 
 
 class SingleImageProcessor(BaseImageProcessor):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, img_cropped: np.ndarray, header_img: np.ndarray, list_of_pics: list[np.ndarray]) -> None:
+        super().__init__( img_cropped, header_img, list_of_pics)
         self.multiple_pics_mode: bool = False
         self.merged_picture = None
         

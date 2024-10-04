@@ -1,5 +1,6 @@
 import ast
 from pyautogui import sleep
+from app.imageProcessing.imageProcessors.concreteProcessors.baseImageProcessor import BaseImageProcessor
 from app.imageProcessing.imageProcessors.imageProcessorFactory import ImageProcessorFactory
 import torch
 from app.guiAgent.guiAgent import GuiAgent
@@ -21,12 +22,12 @@ load_dotenv()
 def main() -> None:
     # Screenshot processing
     gui_agent = GuiAgent()
-    filename = gui_agent.take_screenshot(os.getenv('SCREENSHOTS_FOLDER'))
+    filename: str = gui_agent.take_screenshot(os.getenv('SCREENSHOTS_FOLDER'))
     sleep(1)
 
     
     processor_factory = ImageProcessorFactory(filename)
-    image_processor =  processor_factory.get_processor(os.getenv('CAPTCHA_PICS_FOLDER'))
+    image_processor: BaseImageProcessor =  processor_factory.get_processor(os.getenv('CAPTCHA_PICS_FOLDER'))
     list_of_img = image_processor.further_process_captcha_image(os.getenv('CAPTCHA_PICS_FOLDER'))
     ocr = OCR()
     header_label = ocr.ocr_from_image(os.getenv('CAPTCHA_HEADER_IMG'))
