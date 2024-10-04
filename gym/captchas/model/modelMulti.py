@@ -207,20 +207,23 @@ class MultiObjectDataset(Dataset):
     
     def __augment(self, image: Image.Image) -> Image.Image:
         return self.transform(image)
+
     
-    def __make_reverse_sample(self, label: torch.Tensor) -> torch.Tensor:
-        if label[-1] == 0: # label[-1] tells whether the sample is positive or negative
-            random_class_index = random.randint(0, self.CLASS_COUNT)
+    def __make_negative_sample(self, label: torch.Tensor) -> torch.Tensor:
+        # label[-1] tells whether the sample is positive [1] or negative [0]
+        if label[-1] == 0:
+            random_class_index = random.randint(0, self.CLASS_COUNT - 1)
             label[random_class_index] = 1
             return label
-        
+
         label[-1] = 0
-        
         real_class_index = torch.argmax(label[:-1])
-        random_number = random.randint(0, self.CLASS_COUNT - 1)
-        new_class_index = random_number if random_number < real_class_index else random_number + 1
+
+        # select random index, ensure the new index is different from the real class index
+        new_class_index = random.choice([i for i in range(self.CLASS_COUNT) if i != real_class_index])
         label[new_class_index] = 1
-        
+        label[real_class_index] = 0
+
         return label
     
     def __init__(self, images_dir: str, is_training: bool, class_name_to_index: dict[str, int], image_width: int = 224) -> None:
@@ -263,8 +266,8 @@ class MultiObjectDataset(Dataset):
             img, label = self.__read_file(file_name)
             self.cache[img_index] = (img, label)
             
-        if not is_positive:
-            label = self.__make_reverse_sample(label)
+        if not is_positive or label[-1] == 0:
+            label = self.__make_negative_sample(label)
             
         return self.__augment(img), label
         

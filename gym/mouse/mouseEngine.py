@@ -44,7 +44,6 @@ class MouseEngine:
             target_vector = target_vector / np.linalg.norm(target_vector) * MAX_DIST
             
         target_velocity = target_vector * self.speed / MAX_DIST # eventual speed in infinite time
-        print(target_velocity, self.mouse_velocity)
         
         velocity_difference = target_velocity - self.mouse_velocity
         velocity_difference_magnitude = np.linalg.norm(velocity_difference)

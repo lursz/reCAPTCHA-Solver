@@ -26,5 +26,5 @@ class DataTransformMulti(DataTransform):
         self.data_transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Resize(150),
-            transforms.CenterCrop(150)
+            # transforms.CenterCrop(150)
         ])

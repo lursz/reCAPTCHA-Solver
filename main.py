@@ -62,6 +62,7 @@ def main() -> None:
             pred = model(img_tensor, class_tensor)[0]
             should_select = pred.cpu().detach().numpy() > THRESHOLD
             list_of_predictions.append(should_select)    
+            print(pred.cpu().detach().numpy())
     else:
         model = ModelSingle(11)
         model.load_state_dict(torch.load(os.getenv('CAPTCHA_MODEL_SINGLE'), map_location=torch.device('cpu')))
