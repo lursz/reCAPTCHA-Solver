@@ -11,7 +11,7 @@ import os
 from dotenv import load_dotenv
 from matplotlib import pyplot as plt
 
-from gym.captchas.model.modelMulti import TunedModel
+from gym.captchas.model.modelMulti import ModelMultiSimple
 from gym.captchas.model.modelSingle import ModelSingle
 from gym.mouse.mouseEngine import MouseEngine
 load_dotenv()
@@ -49,7 +49,7 @@ def main() -> None:
     # ML Model
     print(f"is multiple pics mode {image_processor.multiple_pics_mode}")
     if image_processor.multiple_pics_mode:
-        model = TunedModel(13)
+        model = ModelMultiSimple(13)
         model.load_state_dict(torch.load(os.getenv('CAPTCHA_MODEL_MULTI'), map_location=torch.device('cpu')))
         model.eval()
         

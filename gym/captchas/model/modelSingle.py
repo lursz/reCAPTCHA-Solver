@@ -74,7 +74,7 @@ class ModelSingleWithConv(nn.Module, ModelTools):
 class ModelSingle(nn.Module, ModelTools):
     def __init__(self, num_classes: int):
         super(ModelSingle, self).__init__()
-        self.num_classes = num_classes
+        self.classes_count = num_classes
 
         self.resnet = models.resnet18(pretrained=True)
         for param in self.resnet.parameters():  # Freeze ResNet layers
@@ -109,7 +109,7 @@ class ModelSingle(nn.Module, ModelTools):
     
     
 
-def train(model: ModelSingle, dataloader: DataLoader, criterion, optimizer, device, EPOCHS: int, image_datasets):
+def train_single(model: ModelSingle, dataloader: DataLoader, criterion, optimizer, EPOCHS: int, image_datasets):
     accuracy_history: list = []
     loss_history: list = []
     val_accuracy_history: list = []
@@ -130,14 +130,14 @@ def train(model: ModelSingle, dataloader: DataLoader, criterion, optimizer, devi
             targets = targets.to(device)
 
             optimizer.zero_grad()
-            outputs = model(images, targets[:, :model.num_classes])
-            loss = criterion(outputs, targets[:, model.num_classes:])
+            outputs = model(images, targets[:, :model.classes_count]) # targets[one hot encoded class, tiles_to_select]
+            loss = criterion(outputs, targets[:, model.classes_count:])
             loss.backward()
             optimizer.step()
 
             running_loss += loss.cpu().item() * images.cpu().size(0)
 
-            incorrects_count = torch.sum((outputs > 0.5) != (targets[:, model.num_classes:] > 0.5))
+            incorrects_count = torch.sum((outputs > 0.5) != (targets[:, model.classes_count:] > 0.5))
             running_corrects += len(images) * 16 - incorrects_count
         epoch_loss = running_loss / len(image_datasets['train'])
         epoch_acc = running_corrects / (len(image_datasets['train']) * 16)
@@ -156,14 +156,14 @@ def train(model: ModelSingle, dataloader: DataLoader, criterion, optimizer, devi
                 inputs = inputs.to(device)
                 labels = labels.to(device)
                 
-                outputs = model(inputs, labels[:, :model.num_classes])
-                val_loss = criterion(outputs, labels[:, model.num_classes:])
+                outputs = model(inputs, labels[:, :model.classes_count])
+                val_loss = criterion(outputs, labels[:, model.classes_count:])
 
                 # print(labels[:, model.num_classes:], outputs)
                 
                 val_running_loss += val_loss.cpu().item() * inputs.cpu().size(0)
 
-                incorrects_count = torch.sum((outputs > 0.5) != (labels[:, model.num_classes:] > 0.5))
+                incorrects_count = torch.sum((outputs > 0.5) != (labels[:, model.classes_count:] > 0.5))
                 val_running_corrects += len(inputs) * 16 - incorrects_count
 
         val_epoch_loss = val_running_loss / len(image_datasets['val'])
@@ -263,15 +263,8 @@ class ObjectDetectionDataset(Dataset):
 
         return image, target
     
-    def __fill_cache(self) -> None:
-        for idx in range(len(self.images)):
-            image, bboxes, class_tensors, class_ids = self.__read_file(idx)
-            self.images_cache[idx] = image
-            self.bboxes_cache[idx] = bboxes
-            self.class_tensors_cache[idx] = class_tensors
-            self.class_ids_cache[idx] = class_ids
-
-    def __init__(self, images_dir: str, labels_dir: str,  is_training: bool, image_width: int = 450) -> None:
+    def __init__(self, images_dir: str, labels_dir: str, is_training: bool, image_width: int = 450) -> None:
+        super().__init__()
         self.EPSILON: float = 1e-7
         self.CLASS_COUNT: int = 11
         self.ROWS_COUNT: int = 4
@@ -305,22 +298,20 @@ class ObjectDetectionDataset(Dataset):
         self.class_tensors_cache = {}
         self.class_ids_cache = {}
 
-        self.__fill_cache()
-
     def __len__(self) -> int:
         return len(self.images)
 
-    def __getitem__(self, idx):
-        if idx not in self.images_cache:
-            image, bboxes, class_tensors, class_ids = self.__read_file(idx)
-            self.images_cache[idx] = image
-            self.bboxes_cache[idx] = bboxes
-            self.class_tensors_cache[idx] = class_tensors
-            self.class_ids_cache[idx] = class_ids
+    def __getitem__(self, index):
+        if index not in self.images_cache:
+            image, bboxes, class_tensors, class_ids = self.__read_file(index)
+            self.images_cache[index] = image
+            self.bboxes_cache[index] = bboxes
+            self.class_tensors_cache[index] = class_tensors
+            self.class_ids_cache[index] = class_ids
         else:
-            image = self.images_cache[idx]
-            bboxes = self.bboxes_cache[idx]
-            class_tensors = self.class_tensors_cache[idx]
-            class_ids = self.class_ids_cache[idx]
+            image = self.images_cache[index]
+            bboxes = self.bboxes_cache[index]
+            class_tensors = self.class_tensors_cache[index]
+            class_ids = self.class_ids_cache[index]
 
         return self.__augment(image, bboxes, class_ids, class_tensors)
