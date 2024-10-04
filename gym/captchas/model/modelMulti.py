@@ -209,7 +209,7 @@ class MultiObjectDataset(Dataset):
         return self.transform(image)
     
     def __make_reverse_sample(self, label: torch.Tensor) -> torch.Tensor:
-        if label[-1] == 0:
+        if label[-1] == 0: # label[-1] tells whether the sample is positive or negative
             random_class_index = random.randint(0, self.CLASS_COUNT)
             label[random_class_index] = 1
             return label

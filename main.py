@@ -11,13 +11,11 @@ import os
 from dotenv import load_dotenv
 from matplotlib import pyplot as plt
 
-from gym.captchas.model.modelMulti import ModelMultiSimple
+from gym.captchas.model.modelMulti import ModelMultiResnet
 from gym.captchas.model.modelSingle import ModelSingle
 from gym.mouse.mouseEngine import MouseEngine
 load_dotenv()
 
-    
-    
 
 def main() -> None:
     # Screenshot processing
@@ -47,21 +45,23 @@ def main() -> None:
         
 
     # ML Model
-    print(f"is multiple pics mode {image_processor.multiple_pics_mode}")
+    print(f"Is multiple pics mode: {image_processor.multiple_pics_mode}")
     if image_processor.multiple_pics_mode:
-        model = ModelMultiSimple(13)
+        model = ModelMultiResnet(13)
         model.load_state_dict(torch.load(os.getenv('CAPTCHA_MODEL_MULTI'), map_location=torch.device('cpu')))
         model.eval()
         
-        TEMP = 1.0
-        THRESHOLD = 0.3
+        THRESHOLD = 0.5
+        
+        class_tensor = torch.zeros(1, 13)
+        class_tensor[0, label_index] = 1
+        
         list_of_predictions = []
         for tensor in tensor_list:
-            pred = model(tensor.unsqueeze(0))[0]
-            pred = torch.nn.functional.softmax(pred / TEMP).detach().numpy()
-            should_select = pred[label_index] > THRESHOLD
+            img_tensor = tensor.unsqueeze(0)
+            pred = model(img_tensor, class_tensor)[0]
+            should_select = pred.cpu().detach().numpy() > THRESHOLD
             list_of_predictions.append(should_select)    
-        print(list_of_predictions)
     else:
         model = ModelSingle(11)
         model.load_state_dict(torch.load(os.getenv('CAPTCHA_MODEL_SINGLE'), map_location=torch.device('cpu')))
@@ -76,7 +76,6 @@ def main() -> None:
         pred = model(img_tensor, class_tensor)
         
         list_of_predictions = pred.cpu().detach().numpy()[0] > THRESHOLD   
-        print(list_of_predictions)    
         
         image = list_of_img[0]
         list_of_img = []
@@ -89,6 +88,8 @@ def main() -> None:
                 tile = image[i*tile_height:(i+1)*tile_height, j*tile_width:(j+1)*tile_width]
                 list_of_img.append(tile)
         
+    print(f"Predictions: {list_of_predictions}")    
+
     # Mouse 
     mouse = MouseEngine()
     for i, img in enumerate(list_of_img):
