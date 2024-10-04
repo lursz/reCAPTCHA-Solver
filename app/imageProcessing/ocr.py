@@ -14,8 +14,9 @@ class OCR:
         result = reader.readtext(image_path)
         result = [text[1] for text in result] #return only text and not the bounding box
         print(result)
-        return result[1]
+        return OCR.normalize_label(result[1])
         
-    def normalize_label(self, label: str) -> str:
+    @staticmethod
+    def normalize_label(label: str) -> str:
         label = label.lower()
-        return label if label[-1] != 's' else label[:-1]
+        return label.strip()

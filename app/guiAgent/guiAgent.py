@@ -7,6 +7,10 @@ from dotenv import load_dotenv
 class GuiAgent:
     def __init__(self) -> None:
         load_dotenv()
+        self.open_browser("localhost")
+        pyautogui.sleep(2)
+        self.click_checkbox()
+        pyautogui.sleep(2)
     
     def get_screen_resolution(self) -> tuple:
         return pyautogui.size()

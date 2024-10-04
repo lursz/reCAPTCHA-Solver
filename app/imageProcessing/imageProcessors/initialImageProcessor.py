@@ -1,34 +1,25 @@
 import cv2
-import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-class ImageProcessor:
+class InitialImageProcessor:
     def __init__(self, path: str) -> None:
-        self.path = path
+        self.multiple_pics_mode: bool = True
+        self.path: str = path
         self.img = cv2.imread(path)
         self.img_cropped = None
         self.header_img = None
         self.list_of_pics = None
-        self.height = None 
-        self.width = None
         
     def show_image(self) -> None:
         plt.imshow(self.img)
         plt.show()
         
-    def process_captcha_image(self, output_folder: str) -> list[np.ndarray]:
-        self.crop_image_to_captcha()
-        self.cut_captcha_pics()
-        self.polishing_the_pics()
-        self.save_all_pics(output_folder)
-        return self.list_of_pics
-    
-    def crop_image_to_captcha(self) -> np.ndarray:
-        self.height, self.width, _ = self.img.shape
+    def crop_image_to_captcha(self) -> None:
+        height, width, _ = self.img.shape
 
         # Morphological operations
-        kernel_size = self.width // 3
+        kernel_size = width // 3
         kernel = np.ones((kernel_size, kernel_size), np.uint8)
         img_eroded = cv2.erode(self.img, kernel)
         img_dilated = cv2.dilate(self.img, kernel)
@@ -61,9 +52,8 @@ class ImageProcessor:
 
         # Crop the image to the bounding box of the largest connected component
         self.img_cropped = self.img[min_y:max_y, min_x:max_x]
-
+        
     def cut_captcha_pics(self):
-        # background areas
         captcha_background = (self.img_cropped == 255)[..., 0]
         height, width = captcha_background.shape
 
@@ -122,10 +112,11 @@ class ImageProcessor:
                 piece = self.img_cropped[start_y:end_y, start_x:end_x]
                 self.list_of_pics.append(piece)
        
-            
+       
     def polishing_the_pics(self) -> None:
         # Process each piece to remove background lines
         processed_pieces = []
+        max_area = 0
         for piece in self.list_of_pics:
             piece_height, piece_width = piece.shape[:2]
             
@@ -145,12 +136,19 @@ class ImageProcessor:
             
             # Crop the piece to remove lines
             processed_piece = piece[selected_ys, :][:, selected_xs]
-            processed_pieces.append(processed_piece)
-
-    def save_all_pics(self, path: str) -> None:
-        if not os.path.exists(path):
-            os.makedirs(path)
             
-        cv2.imwrite(f"{path}/header.png", self.header_img)
-        for i, pic in enumerate(self.list_of_pics):
-            cv2.imwrite(f"{path}/pic_{i}.png", pic)
+            processed_piece_height, processed_piece_width, _ = processed_piece.shape
+            processed_piece_area = processed_piece_height * processed_piece_width
+            max_area = max(max_area, processed_piece_area)
+
+            processed_pieces.append((processed_piece_area, processed_piece))
+            
+        # select only large tiles, get rid of trash
+        self.list_of_pics = []
+        half_max_area = int(max_area * 0.9)
+        
+        for area, piece in processed_pieces:
+            if area >= half_max_area:
+                self.list_of_pics.append(piece)
+                
+        self.multiple_pics_mode = len(self.list_of_pics) <= 10
