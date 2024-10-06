@@ -16,8 +16,8 @@ print(f"Using device: {device}")
 CAPTCHA_DATASET_DIR: str= 'input/images/'
 CAPTCHA_RESULT_MODELS_DIR: str= 'results/'
 FREEZED_EPOCHS = 10
-UNFREEZED_LAST_LAYER_EPOCHS = 1
-EPOCHS = 1
+UNFREEZED_LAST_LAYER_EPOCHS = 25
+EPOCHS = 50
 
 
 class TrainerMulti:
@@ -32,10 +32,9 @@ class TrainerMulti:
             'hydrant': 6,
             'motorcycle': 7,
             'mountain': 8,
-            'other': 9,
-            'palm': 10,
-            'stair': 11,
-            'trafficlight': 12
+            'palm': 9,
+            'stair': 10,
+            'trafficlight': 11
         }
         
         self.datasets: dict[str, MultiObjectDataset] = {

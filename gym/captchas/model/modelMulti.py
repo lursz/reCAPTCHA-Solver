@@ -9,6 +9,8 @@ import os
 import random
 from torchvision import models, transforms
 from .modelTools import ModelTools
+from matplotlib import pyplot as plt
+import numpy as np
 
 
 
@@ -28,10 +30,7 @@ class ModelMultiResnet(nn.Module, ModelTools):
         self.resnet.fc = nn.Identity() # remove the final fully connected layer
         
         self.fc = nn.Sequential(
-            nn.Linear(512 + num_classes, 256),
-            nn.ReLU(),
-            nn.BatchNorm1d(256),
-            nn.Linear(256, 128),
+            nn.Linear(512 + num_classes, 128),
             nn.ReLU(),
             nn.BatchNorm1d(128),
             # nn.Dropout(0.1),
@@ -136,7 +135,7 @@ def train_multi(model, criterion, optimizer, dataloaders, image_datasets, EPOCHS
         running_corrects = 0
         
         # Training
-        for images, targets in tqdm(dataloaders['train']):
+        for i, (images, targets) in enumerate(tqdm(dataloaders['train'])):
             images = images.to(device)
             targets = targets.to(device)
 
@@ -154,13 +153,13 @@ def train_multi(model, criterion, optimizer, dataloaders, image_datasets, EPOCHS
         epoch_acc = running_corrects / (len(image_datasets['train']))
         accuracy_history.append(epoch_acc)
         loss_history.append(epoch_loss)
-
+        
         # Validation loop
         model.eval()
         val_running_loss = 0.0
         val_running_corrects = 0
         with torch.no_grad():
-            for inputs, labels in tqdm(dataloaders['val']):
+            for i, (inputs, labels) in enumerate(tqdm(dataloaders['val'])):
                 inputs = inputs.to(device)
                 labels = labels.to(device)
                 
@@ -171,6 +170,7 @@ def train_multi(model, criterion, optimizer, dataloaders, image_datasets, EPOCHS
                 
                 incorrects_count = torch.sum((outputs > 0.5) != (labels[:, model.classes_count:] > 0.5))
                 val_running_corrects += len(inputs) - incorrects_count
+                
         val_epoch_loss = val_running_loss / len(image_datasets['val'])
         val_epoch_acc = val_running_corrects / len(image_datasets['val'])
         val_accuracy_history.append(val_epoch_acc)
@@ -210,6 +210,8 @@ class MultiObjectDataset(Dataset):
 
     
     def __make_negative_sample(self, label: torch.Tensor) -> torch.Tensor:
+        label = label.clone()
+        
         # label[-1] tells whether the sample is positive [1] or negative [0]
         if label[-1] == 0:
             random_class_index = random.randint(0, self.CLASS_COUNT - 1)
@@ -217,7 +219,7 @@ class MultiObjectDataset(Dataset):
             return label
 
         label[-1] = 0
-        real_class_index = torch.argmax(label[:-1])
+        real_class_index = int(torch.argmax(label[:-1]))
 
         # select random index, ensure the new index is different from the real class index
         new_class_index = random.choice([i for i in range(self.CLASS_COUNT) if i != real_class_index])
@@ -229,7 +231,7 @@ class MultiObjectDataset(Dataset):
     def __init__(self, images_dir: str, is_training: bool, class_name_to_index: dict[str, int], image_width: int = 224) -> None:
         super().__init__()
         self.EPSILON: float = 1e-7
-        self.CLASS_COUNT: int = 13
+        self.CLASS_COUNT: int = 12
         self.image_width: int = image_width
         self.class_name_to_index = class_name_to_index
         self.images_dir = images_dir
@@ -238,7 +240,7 @@ class MultiObjectDataset(Dataset):
         if is_training:
             self.transform = transforms.Compose([
                 transforms.Resize((self.image_width, self.image_width)),
-                transforms.ColorJitter(brightness=0.1, contrast=0.15, saturation=0.1, hue=0.05),
+                # transforms.ColorJitter(brightness=0.1, contrast=0.15, saturation=0.1, hue=0.05),
                 transforms.RandomHorizontalFlip(),
                 transforms.RandomAffine(degrees=20, translate=(0.1, 0.1), scale=(0.85, 1.15)),
                 transforms.ToTensor()
@@ -269,5 +271,11 @@ class MultiObjectDataset(Dataset):
         if not is_positive or label[-1] == 0:
             label = self.__make_negative_sample(label)
             
-        return self.__augment(img), label
+        augmented_img = self.__augment(img)
+        
+        # plt.imshow(augmented_img.permute(1, 2, 0).numpy())
+        # plt.title(label)
+        # plt.show()
+            
+        return augmented_img, label
         

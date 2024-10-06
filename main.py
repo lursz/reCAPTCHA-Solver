@@ -31,7 +31,7 @@ def main() -> None:
     header_label = ocr.ocr_from_image(os.getenv('CAPTCHA_HEADER_IMG'))
     print("Header label", header_label)
     
-    if image_processor.multiple_pics_mode:
+    if image_processor.multiple_pics_mode:        
         data_transform = DataTransformMulti()
         tensor_list = data_transform.pictures_to_tensors(list_of_img)
         label_to_index: dict = ast.literal_eval(os.environ["CAPTCHA_OBJECTS_INDEX"])
@@ -42,18 +42,17 @@ def main() -> None:
     print(f"header_label {header_label}")
     label_index = label_to_index[header_label]
     print(header_label, label_index)
-        
 
     # ML Model
     print(f"Is multiple pics mode: {image_processor.multiple_pics_mode}")
     if image_processor.multiple_pics_mode:
-        model = ModelMultiResnet(13)
+        model = ModelMultiResnet(12)
         model.load_state_dict(torch.load(os.getenv('CAPTCHA_MODEL_MULTI'), map_location=torch.device('cpu')))
         model.eval()
         
         THRESHOLD = 0.5
         
-        class_tensor = torch.zeros(1, 13)
+        class_tensor = torch.zeros(1, 12)
         class_tensor[0, label_index] = 1
         
         list_of_predictions = []
@@ -63,6 +62,10 @@ def main() -> None:
             should_select = pred.cpu().detach().numpy() > THRESHOLD
             list_of_predictions.append(should_select)    
             print(pred.cpu().detach().numpy())
+            
+            # plt.imshow(tensor.cpu().detach().numpy().transpose(1, 2, 0))
+            # plt.title(f"Prediction: {pred}")
+            # plt.show()
     else:
         model = ModelSingle(11)
         model.load_state_dict(torch.load(os.getenv('CAPTCHA_MODEL_SINGLE'), map_location=torch.device('cpu')))
