@@ -16,8 +16,8 @@ print(f"Using device: {device}")
 CAPTCHA_DATASET_DIR: str= 'input/images/'
 CAPTCHA_RESULT_MODELS_DIR: str= 'results/'
 FREEZED_EPOCHS = 10
-UNFREEZED_LAST_LAYER_EPOCHS = 25
-EPOCHS = 50
+UNFREEZED_LAST_LAYER_EPOCHS = 20
+EPOCHS = 70
 
 
 class TrainerMulti:
@@ -44,7 +44,7 @@ class TrainerMulti:
         }
    
         self.dataloaders: dict[str, DataLoader] = {
-            'train': DataLoader(self.datasets['train'], batch_size=4, shuffle=True),
+            'train': DataLoader(self.datasets['train'], batch_size=8, shuffle=True),
             'val': DataLoader(self.datasets['val'], batch_size=4, shuffle=True),
             'test': DataLoader(self.datasets['test'], batch_size=4, shuffle=True)
         }
@@ -57,9 +57,6 @@ class TrainerMulti:
         optimizer = optim.Adam(model.parameters(), lr=0.001)
         train_multi(model, criterion, optimizer, self.dataloaders, self.datasets, FREEZED_EPOCHS)
         model.unfreeze_last_resnet_layer()
-        optimizer = optim.Adam(model.parameters(), lr=0.0001)
-        history = train_multi(model, criterion, optimizer, self.dataloaders, self.datasets, UNFREEZED_LAST_LAYER_EPOCHS)
-        model.unfreeze_second_to_last_resnet_layer()
         optimizer = optim.Adam(model.parameters(), lr=0.0001)
         history = train_multi(model, criterion, optimizer, self.dataloaders, self.datasets, EPOCHS)
         max_accuracy = int(max([value.cpu().item() for value in history['val_accuracy']]) * 100)
