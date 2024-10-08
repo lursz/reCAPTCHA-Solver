@@ -11,7 +11,7 @@ class SingleImageProcessor(BaseImageProcessor):
         self.multiple_pics_mode: bool = False
         self.merged_picture = None
         
-    def further_process_captcha_image(self, output_folder: str) -> list[np.ndarray] | None:
+    def further_process_captcha_image(self, output_folder: str) -> list[np.ndarray]:
         self.multiple_pics_mode = False
         self.merge_pics()
         self.save_pics(output_folder)
