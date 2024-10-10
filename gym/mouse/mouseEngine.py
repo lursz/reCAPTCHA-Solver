@@ -3,8 +3,8 @@ import numpy as np
 
 class MouseEngine:
     def __init__(self) -> None:
-        self.target: tuple = None
-        self.speed: int = 260.0
+        self.target = None
+        self.speed: float = 260.0
         self.max_acceleration: float = 35.5
         self.dt = 1.0
         self.mouse_position = np.array(pyautogui.position(), dtype=float)
@@ -12,7 +12,7 @@ class MouseEngine:
         self.close_distance = 15.0
         
         
-    def is_mouse_close(self) -> bool:
+    def is_mouse_close(self) -> np.bool:
         if self.target is None:
             raise ValueError("Mouse Engine: Target is not set")
         
