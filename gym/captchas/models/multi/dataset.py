@@ -4,6 +4,9 @@ from torch.utils.data import Dataset
 from PIL import Image
 import random
 from torchvision import transforms
+import numpy as np
+import cv2
+from matplotlib import pyplot as plt
 
 
 class MultiObjectDataset(Dataset):
@@ -54,11 +57,44 @@ class MultiObjectDataset(Dataset):
         self.images_dir: str = images_dir
         self.file_names: list[str] = [str(file_name) for file_name in Path(images_dir).rglob("*.[pj][np]g")]
         
-        if is_training:
+        def __salt_and_pepper_transform(image: Image.Image, prob_salt: float = 0.01) -> Image.Image:
+            image_pixels = np.array(image)
+            
+            random_values_high = np.random.rand(*image_pixels.shape) < prob_salt * 0.5
+            random_values_low = np.random.rand(*image_pixels.shape) < prob_salt * 0.5
+            
+            low_or_high = np.maximum(random_values_low, random_values_high)
+            no_low_or_high = np.logical_not(low_or_high)
+            
+            processed_image = (image_pixels * no_low_or_high + 255 * random_values_high).astype(np.uint8)
+            
+            return Image.fromarray(processed_image)
+        
+        def __cartoonize_image_transform(image: Image.Image) -> Image.Image:
+            image_pixels = np.array(image)
+            gray_img = cv2.cvtColor(image_pixels, cv2.COLOR_RGB2GRAY)
+            
+            median_blur = cv2.medianBlur(image_pixels, 3)
+            edges = cv2.adaptiveThreshold(gray_img, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 9, 9)
+            filtered_image = cv2.bilateralFilter(median_blur, 9, 200, 200)
+            cartoon_img = cv2.bitwise_and(filtered_image, filtered_image, mask=edges)
+            
+            return Image.fromarray(cartoon_img)
+        
+        if is_training:           
             self.transform = transforms.Compose([
                 transforms.Resize((self.image_width, self.image_width)),
-                # transforms.ColorJitter(brightness=0.1, contrast=0.15, saturation=0.1, hue=0.05),
                 transforms.RandomHorizontalFlip(),
+                transforms.RandomChoice([
+                    lambda x: x,
+                    transforms.GaussianBlur(kernel_size=3, sigma=(0.1, 2.0)),
+                    transforms.GaussianBlur(kernel_size=5, sigma=(0.1, 2.0)),
+                    transforms.ColorJitter(brightness=0.1, contrast=0.15, saturation=0.1, hue=0.05),
+                    transforms.ColorJitter(brightness=0.15, contrast=0.15, saturation=0.15, hue=0.05),
+                    lambda x: __salt_and_pepper_transform(x, prob_salt=0.005),
+                    lambda x: __salt_and_pepper_transform(x, prob_salt=0.01),
+                    lambda x: __cartoonize_image_transform(x)
+                ], p=[0.3, 0.1, 0.1, 0.1,0.1, 0.1, 0.1, 0.1]),
                 transforms.RandomAffine(degrees=20, translate=(0.1, 0.1), scale=(0.85, 1.15)),
                 transforms.ToTensor()
             ])
@@ -90,8 +126,7 @@ class MultiObjectDataset(Dataset):
         augmented_img = self.__augment(img)
         
         # plt.imshow(augmented_img.permute(1, 2, 0).numpy())
-        # plt.title(label)
-        # plt.show()
+        # plt.savefig(f"temp/{uuid.uuid4()}")
             
         return augmented_img, label
         
