@@ -7,7 +7,7 @@ from gym.captchas.models.multi.modelMulti import ModelMulti
 from gym.captchas.models.single.modelSingle import ModelSingle
 
 class BaseModelService:
-    def __init__(self, label_index, threshold: float = 0.5) -> None:
+    def __init__(self, label_index: int, threshold: float = 0.5) -> None:
         self.label_index = label_index
         self.threshold = threshold
 
@@ -18,7 +18,7 @@ class BaseModelService:
         raise NotImplementedError("Subclasses must implement predict method.")
 
 class MultiModelService(BaseModelService):
-    def __init__(self, label_index, threshold=0.5):
+    def __init__(self, label_index: int, threshold: float = 0.5) -> None:
         super().__init__(label_index, threshold)
         self.load_model()
         self.data_transform = DataTransformMulti()
@@ -29,7 +29,6 @@ class MultiModelService(BaseModelService):
         self.model.eval()
 
     def predict(self, list_of_img: list) -> list[np.ndarray]:
-        print("DUAPAAA", type(list_of_img[0]))
         class_tensor: torch.Tensor = torch.zeros(1, 12)
         class_tensor[0, self.label_index] = 1
         tensor_list: list[torch.Tensor] = self.data_transform.pictures_to_tensors(list_of_img)
@@ -42,7 +41,7 @@ class MultiModelService(BaseModelService):
         return list_of_predictions
 
 class SingleModelService(BaseModelService):
-    def __init__(self, label_index, threshold=0.5):
+    def __init__(self, label_index: int, threshold: float = 0.5) -> None:
         super().__init__(label_index, threshold)
         self.load_model()
         self.data_transform = DataTransformSingle()

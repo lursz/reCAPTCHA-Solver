@@ -24,6 +24,7 @@ class CaptchaProcessor:
         self.captcha_objects_index = ast.literal_eval(os.environ["CAPTCHA_OBJECTS_INDEX"])
         self.captcha_objects_single_index = ast.literal_eval(os.environ["CAPTCHA_OBJECTS_SINGLE_INDEX"])
         self.submit_icon = os.getenv('SUBMIT_ICON')
+        self.next_icon = os.getenv('NEXT_ICON')
         
     def process_image(self, screenshot_path: str) -> tuple[str, list[np.ndarray], bool]:
         ocr = OCR()
@@ -35,12 +36,22 @@ class CaptchaProcessor:
         header_label = ocr.ocr_from_image(self.captcha_header_img)
         return header_label, list_of_img, image_processor.multiple_pics_mode
 
-    def handle_mouse_actions(self, list_of_img, list_of_predictions, submit_icon: np.ndarray) -> None:
+    def handle_mouse_actions(self, list_of_img: list[np.ndarray], list_of_predictions: list[np.ndarray]) -> None:
         for i, img in enumerate(list_of_img):
             if list_of_predictions[i]:
                 position = self.gui_agent.locate_on_screen(img)
                 self.mouse_engine.move_mouse_all_the_way(position)
-        submit_position = self.gui_agent.locate_on_screen(submit_icon)
+                
+        # consequent captcha
+        try:
+            next_position = self.gui_agent.locate_on_screen(self.next_icon)
+            self.mouse_engine.move_mouse_all_the_way(next_position)
+            sleep(1)
+            self.process_captcha()
+        except Exception as e:
+            print("No next icon found.")
+                    
+        submit_position = self.gui_agent.locate_on_screen(self.submit_icon)
         self.mouse_engine.move_mouse_all_the_way(submit_position)
 
     def process_captcha(self) -> None:
@@ -65,7 +76,9 @@ class CaptchaProcessor:
             list_of_predictions, list_of_img = predictor.predict(list_of_img)
 
         # Perform mouse actions
-        self.handle_mouse_actions(list_of_img, list_of_predictions, self.submit_icon)
+        self.handle_mouse_actions(list_of_img, list_of_predictions)
+        
+        
         
         
 def main() -> None:

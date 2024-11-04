@@ -21,14 +21,12 @@ class GanTraining:
             data = json.load(f)
 
         data_dfs = [pd.DataFrame(d)[['x', 'y', 'speed']] for d in data if len(d) > 0]
-
         data_np = [df.values for df in data_dfs]
 
         # print([len(d) for d in data_np])
 
         dataset = MouseMovementDataset(data_np)
         dataloader = DataLoader(dataset, shuffle=True)
-
 
         batch_size = 64
         hidden_dim = 16
