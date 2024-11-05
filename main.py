@@ -7,7 +7,7 @@ from pyautogui import sleep
 from app.guiAgent.guiAgent import GuiAgent
 from app.imageProcessing.imageProcessors.imageProcessorFactory import ImageProcessorFactory
 from app.imageProcessing.ocr import OCR
-from gym.mouse.mouseEngine import MouseEngine
+from app.mouseMovement.mouseEngine import MouseEngine
 from services import MultiModelService, SingleModelService
 load_dotenv()
 
