@@ -6,7 +6,7 @@ import pyautogui
 from threading import Timer
 
 class MouseLoggerApp:
-    def __init__(self, root):
+    def __init__(self, root) -> None:
         self.root = root
         self.root.attributes('-fullscreen', True)
         self.root.bind("<Escape>", self.export_to_json_and_quit)
@@ -28,7 +28,7 @@ class MouseLoggerApp:
         self.canvas.tag_bind(self.green_square, "<Button-1>", self.start_logging)
         self.canvas.tag_bind(self.red_square, "<Button-1>", self.stop_logging)
         
-    def create_random_square(self, color):
+    def create_random_square(self, color) -> int:
         size = 30
         print(self.canvas_width, self.canvas_height)
         x1 = random.randint(0, self.canvas_width - size)
@@ -41,14 +41,14 @@ class MouseLoggerApp:
         
         return self.canvas.create_rectangle(x1, y1, x2, y2, fill=color)
         
-    def start_logging(self, event):
+    def start_logging(self, event) -> None:
         if self.logging:
             return
         
         self.logging = True
         self.log_mouse_position(event, len(self.mouse_data))
         
-    def stop_logging(self, event):
+    def stop_logging(self, event) -> None:
         self.logging = False
         self.mouse_data.append(self.current_mouse_data)
         self.current_mouse_data = []
@@ -63,7 +63,7 @@ class MouseLoggerApp:
         self.canvas.tag_bind(self.red_square, "<Button-1>", self.stop_logging)
         
         
-    def log_mouse_position(self, event, index):
+    def log_mouse_position(self, event, index) -> None:
         if self.logging:       
             # print("Logging ", time.time())
             has_history = len(self.current_mouse_data) > 0
@@ -86,7 +86,7 @@ class MouseLoggerApp:
             if index == len(self.mouse_data):
                 Timer(0.01, lambda: self.log_mouse_position(event, index)).start()
         
-    def export_to_json_and_quit(self, events):
+    def export_to_json_and_quit(self, events) -> None:
         with open('mouse_data.json', 'w') as file:
             json.dump(self.mouse_data, file, indent=4)
         self.root.quit()

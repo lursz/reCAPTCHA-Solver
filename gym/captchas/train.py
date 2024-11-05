@@ -1,4 +1,3 @@
-# Imports
 import torch
 from torch import nn
 import torch.optim as optim
@@ -16,9 +15,9 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 CAPTCHA_DATASET_DIR: str= 'input/images/'
 CAPTCHA_RESULT_MODELS_DIR: str= 'results/'
-FREEZED_EPOCHS = 10
-UNFREEZED_LAST_LAYER_EPOCHS = 20
-EPOCHS = 70
+FREEZED_EPOCHS = 20
+UNFREEZED_LAST_LAYER_EPOCHS = 60
+EPOCHS = 150
 
 
 class TrainerMulti:

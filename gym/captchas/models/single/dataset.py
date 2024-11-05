@@ -21,6 +21,8 @@ class SingleObjectDataset(Dataset):
             bboxes = [np.array([min(label[1::2]), min(label[2::2]), max(label[1::2]), max(label[2::2])]) * self.image_width
                         if len(label) > 5 else np.array([label[1] - label[3] / 2, label[2] - label[4] / 2, label[1] + label[3] / 2, label[2] + label[4] / 2]) * self.image_width for label in labels]
             bboxes = [[x1, y1, x2, y2] for x1, y1, x2, y2 in bboxes if x2 - x1 > self.EPSILON and y2 - y1 > self.EPSILON]
+            # shrink bboxes by 10%
+            bboxes = [[x1 + (x2 - x1) * 0.1, y1 + (y2 - y1) * 0.1, x2 - (x2 - x1) * 0.1, y2 - (y2 - y1) * 0.1] for x1, y1, x2, y2 in bboxes]
 
         class_ids: list[int] = [] if len(bboxes) == 0 else [class_ids[0]] * len(bboxes) 
         class_tensors: torch.Tensor = torch.zeros((self.CLASS_COUNT))
