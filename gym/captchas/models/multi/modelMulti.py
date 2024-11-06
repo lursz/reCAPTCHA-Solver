@@ -16,23 +16,32 @@ class ModelMulti(nn.Module, ModelTools):
 
         self.resnet.fc = nn.Identity() # remove the final fully connected layer
         
-        self.fc = nn.Sequential(
-            nn.Linear(512 + num_classes, 256),
+        self.head_preprocess = nn.Sequential(
+            nn.Linear(512, 256),
             nn.ReLU(),
             nn.BatchNorm1d(256),
             nn.Linear(256, 128),
             nn.ReLU(),
-            nn.BatchNorm1d(128),
-            # nn.Dropout(0.1),
-            nn.Linear(128, out_features=1),
+            nn.BatchNorm1d(128)
+        )
+        
+        self.head_categorical = nn.Sequential(
+            nn.Linear(128, num_classes),
+            nn.Softmax(dim=1)
+        )
+        
+        self.head_binary = nn.Sequential(
+            nn.Linear(128 + num_classes, 1),
             nn.Sigmoid()
         )
 
-    def forward(self, img: torch.Tensor, class_encoded: torch.Tensor):
+    def forward(self, img: torch.Tensor, class_encoded: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         x = self.resnet(img)
-        x = torch.cat((x, class_encoded), dim=1) # concatenate class of the object we're looking for
-        x = self.fc(x)
-        return x
+        x = self.head_preprocess(x)
+        x_binary = torch.cat((x, class_encoded), dim=1) # concatenate class of the object we're looking for
+        x_binary = self.head_binary(x_binary)
+        x_categorical = self.head_categorical(x)
+        return x_binary, x_categorical
     
     def unfreeze_last_resnet_layer(self):
         for param in self.resnet.layer4.parameters():

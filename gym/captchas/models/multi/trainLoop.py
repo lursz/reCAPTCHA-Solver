@@ -10,12 +10,15 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 
-def train_multi(model: ModelMulti, criterion: torch.nn.Module, optimizer: Optimizer, dataloaders: dict[str, DataLoader], image_datasets: dict[str, MultiObjectDataset], EPOCHS: int) -> dict:
+def train_multi(model: ModelMulti, optimizer: Optimizer, dataloaders: dict[str, DataLoader], image_datasets: dict[str, MultiObjectDataset], EPOCHS: int) -> dict:
     accuracy_history: list = []
     loss_history: list = []
     val_accuracy_history: list = []
     val_loss_history: list = []
 
+    criterion_categorical = torch.nn.CrossEntropyLoss(reduce=None)
+    criterion_binary = torch.nn.BCELoss()
+    
     for epoch in range(EPOCHS):
         model.train()
         running_loss = 0.0
@@ -25,16 +28,23 @@ def train_multi(model: ModelMulti, criterion: torch.nn.Module, optimizer: Optimi
         for i, (images, targets) in enumerate(tqdm(dataloaders['train'])):
             images = images.to(device)
             targets = targets.to(device)
+            targets_only_classes = targets[:, :model.classes_count] # one hot encoded class
+            targets_class_numbers = torch.argmax(targets_only_classes, dim=1) # class numbers (batch)
+            targets_is_positive = targets[:, model.classes_count:]
 
             optimizer.zero_grad()
-            outputs = model(images, targets[:, :model.classes_count]) # targets[one hot encoded class, is_positive]
-            loss = criterion(outputs, targets[:, model.classes_count:])
+            outputs_binary, outputs_categorical = model(images, targets[:, :model.classes_count]) # targets[one hot encoded class, is_positive]
+            
+            loss_binary = criterion_binary(outputs_binary, targets[:, model.classes_count:])
+            loss_categorical = (criterion_categorical(outputs_categorical, targets_class_numbers) * targets_is_positive).mean()
+            loss = loss_binary + loss_categorical
+            
             loss.backward()
             optimizer.step()
 
             running_loss += loss.cpu().item() * images.cpu().size(0)
 
-            incorrects_count = torch.sum((outputs > 0.5) != (targets[:, model.classes_count:] > 0.5))
+            incorrects_count = torch.sum((outputs_binary > 0.5) != (targets[:, model.classes_count:] > 0.5))
             running_corrects += len(images) - incorrects_count
         epoch_loss = running_loss / len(image_datasets['train'])
         epoch_acc = running_corrects / (len(image_datasets['train']))
@@ -50,8 +60,8 @@ def train_multi(model: ModelMulti, criterion: torch.nn.Module, optimizer: Optimi
                 inputs = inputs.to(device)
                 labels = labels.to(device)
                 
-                outputs = model(inputs, labels[:, :model.classes_count])
-                loss = criterion(outputs, labels[:, model.classes_count:])
+                outputs, _ = model(inputs, labels[:, :model.classes_count])
+                loss = criterion_binary(outputs, labels[:, model.classes_count:])
                 
                 val_running_loss += loss.cpu().item() * inputs.cpu().size(0)
                 
