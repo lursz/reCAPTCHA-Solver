@@ -31,7 +31,10 @@ class ModelMulti(nn.Module, ModelTools):
         )
         
         self.head_binary = nn.Sequential(
-            nn.Linear(128 + num_classes, 1),
+            nn.Linear(128 + num_classes, 32),
+            nn.ReLU(),
+            nn.BatchNorm1d(32),
+            nn.Linear(32, 1),
             nn.Sigmoid()
         )
 
