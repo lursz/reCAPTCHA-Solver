@@ -9,8 +9,7 @@ class ModelMulti(nn.Module, ModelTools):
     def __init__(self, num_classes: int) -> None:
         super().__init__()
         self.classes_count = num_classes
-        
-        self.resnet: models.ResNet = models.resnet18(pretrained=True)
+        self.resnet: models.ResNet = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
         for param in self.resnet.parameters(): # freeze the ResNet layers
             param.requires_grad = False
 

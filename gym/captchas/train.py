@@ -40,13 +40,13 @@ class TrainerMulti:
         self.datasets: dict[str, MultiObjectDataset] = {
             'train': MultiObjectDataset(CAPTCHA_DATASET_DIR + 'train', True, captcha_objects_index),
             'val': MultiObjectDataset(CAPTCHA_DATASET_DIR + 'val', False, captcha_objects_index),
-            'test': MultiObjectDataset(CAPTCHA_DATASET_DIR + 'test', False, captcha_objects_index)
+            # 'test': MultiObjectDataset(CAPTCHA_DATASET_DIR + 'test', False, captcha_objects_index)
         }
    
         self.dataloaders: dict[str, DataLoader] = {
             'train': DataLoader(self.datasets['train'], batch_size=8, shuffle=True),
             'val': DataLoader(self.datasets['val'], batch_size=4, shuffle=True),
-            'test': DataLoader(self.datasets['test'], batch_size=4, shuffle=True)
+            # 'test': DataLoader(self.datasets['test'], batch_size=4, shuffle=True)
         }
         self.CLASS_COUNT = self.datasets['train'].CLASS_COUNT
         
