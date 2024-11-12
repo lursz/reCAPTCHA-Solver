@@ -36,6 +36,7 @@ class MultiModelService(BaseModelService):
         for tensor in tensor_list:
             img_tensor = tensor.unsqueeze(0)
             pred = self.model(img_tensor, class_tensor)[0]
+            print(pred)
             should_select = pred.cpu().detach().numpy() > self.threshold
             list_of_predictions.append(should_select)
         return list_of_predictions

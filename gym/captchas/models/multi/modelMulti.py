@@ -5,7 +5,47 @@ from torchvision import models
 from ..modelTools import ModelTools
 
 
+
 class ModelMulti(nn.Module, ModelTools):
+    def __init__(self, num_classes: int) -> None:
+        super().__init__()
+        self.classes_count = num_classes
+        
+        self.resnet: models.ResNet = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
+        for param in self.resnet.parameters(): # freeze the ResNet layers
+            param.requires_grad = False
+
+        self.resnet.fc = nn.Identity() # remove the final fully connected layer
+        
+        self.fc = nn.Sequential(
+            nn.Linear(512 + num_classes, 256),
+            nn.ReLU(),
+            nn.BatchNorm1d(256),
+            nn.Linear(256, 128),
+            nn.ReLU(),
+            nn.BatchNorm1d(128),
+            # nn.Dropout(0.1),
+            nn.Linear(128, out_features=1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, img: torch.Tensor, class_encoded: torch.Tensor):
+        x = self.resnet(img)
+        x = torch.cat((x, class_encoded), dim=1) # concatenate class of the object we're looking for
+        x = self.fc(x)
+        return x
+    
+    def unfreeze_last_resnet_layer(self):
+        for param in self.resnet.layer4.parameters():
+            param.requires_grad = True
+
+    def unfreeze_second_to_last_resnet_layer(self):
+        for param in self.resnet.layer3.parameters():
+            param.requires_grad = True
+    
+
+
+class ModelMultiTwoHead(nn.Module, ModelTools):
     def __init__(self, num_classes: int) -> None:
         super().__init__()
         self.classes_count = num_classes
@@ -52,7 +92,8 @@ class ModelMulti(nn.Module, ModelTools):
     def unfreeze_second_to_last_resnet_layer(self):
         for param in self.resnet.layer3.parameters():
             param.requires_grad = True
-    
+
+
 
 class ModelMultiSimple(nn.Module, ModelTools): # 99% accuracy, 93% validation accuracy
     def __init__(self, num_classes: int):

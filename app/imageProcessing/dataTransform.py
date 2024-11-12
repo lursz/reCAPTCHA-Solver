@@ -25,6 +25,6 @@ class DataTransformMulti(DataTransform):
     def __init__(self) -> None:
         self.data_transform = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Resize(150),
+            transforms.Resize(120),
             # transforms.CenterCrop(150)
         ])

@@ -46,7 +46,7 @@ class CaptchaProcessor:
         try:
             next_position = self.gui_agent.locate_on_screen(self.next_icon)
             self.mouse_engine.move_mouse_all_the_way(next_position)
-            sleep(1)
+            sleep(2)
             self.process_captcha()
         except Exception as e:
             print("No next icon found.")
