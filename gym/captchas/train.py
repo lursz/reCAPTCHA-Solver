@@ -58,10 +58,10 @@ class TrainerMulti:
         train_multi(model, criterion, optimizer, self.dataloaders, self.datasets, FREEZED_EPOCHS)
         model.unfreeze_last_resnet_layer()
         optimizer = Adam(model.parameters(), lr=0.0001)
-        history = train_multi(model, optimizer, self.dataloaders, self.datasets, EPOCHS)
+        history = train_multi(model, criterion, optimizer, self.dataloaders, self.datasets, EPOCHS)
         max_accuracy = int(max([value.cpu().item() for value in history['val_accuracy']]) * 100)
         torch.save(model.state_dict(), f'{CAPTCHA_RESULT_MODELS_DIR}/model_multi_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")}_{max_accuracy}.pt')
-        model.plot_accuracy_from_history(history)  #, path="accuracy_plot.png")
+        model.plot_accuracy_from_history(history, path="accuracy_plot.png")
 
 
 

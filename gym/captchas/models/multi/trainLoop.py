@@ -27,7 +27,11 @@ def train_multi(model: ModelMulti, criterion: torch.nn.Module, optimizer: Optimi
 
             optimizer.zero_grad()
             outputs = model(images, targets[:, :model.classes_count]) # targets[one hot encoded class, is_positive]
-            loss = criterion(outputs, targets[:, model.classes_count:])
+            
+            targets_values = targets[:, model.classes_count:]
+            targets_gauss = torch.clamp(targets_values + torch.randn_like(targets_values) * 0.1, 0, 1)
+            
+            loss = criterion(outputs, targets_gauss)
             loss.backward()
             optimizer.step()
 
