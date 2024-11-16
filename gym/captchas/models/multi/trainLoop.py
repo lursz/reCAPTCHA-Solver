@@ -104,7 +104,10 @@ def train_multi_two_head(model: ModelMulti, optimizer: Optimizer, dataloaders: d
             optimizer.zero_grad()
             outputs_binary, outputs_categorical = model(images, targets[:, :model.classes_count]) # targets[one hot encoded class, is_positive]
             
-            loss_binary = criterion_binary(outputs_binary, targets[:, model.classes_count:])
+            targets_values = targets[:, model.classes_count:]
+            targets_gauss = torch.clamp(targets_values + torch.randn_like(targets_values) * 0.1, 0, 1)
+            
+            loss_binary = criterion_binary(outputs_binary, targets_gauss)
             loss_categorical = (criterion_categorical(outputs_categorical, targets_class_numbers) * targets_is_positive).mean()
             loss = loss_binary + loss_categorical
             
