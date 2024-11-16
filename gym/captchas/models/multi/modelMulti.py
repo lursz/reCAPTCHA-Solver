@@ -24,7 +24,7 @@ class ModelMulti(nn.Module, ModelTools):
             nn.Linear(256, 128),
             nn.ReLU(),
             nn.BatchNorm1d(128),
-            # nn.Dropout(0.1),
+            nn.Dropout(0.1),
             nn.Linear(128, out_features=1),
             nn.Sigmoid()
         )
@@ -59,6 +59,7 @@ class ModelMultiTwoHead(nn.Module, ModelTools):
             nn.Linear(512, 256),
             nn.ReLU(),
             nn.BatchNorm1d(256),
+            nn.Dropout(0.2),
             nn.Linear(256, 128),
             nn.ReLU(),
             nn.BatchNorm1d(128)

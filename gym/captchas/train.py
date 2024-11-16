@@ -5,8 +5,8 @@ from torch.utils.data import DataLoader
 import datetime
 from torch.optim.adam import Adam
 from models.multi.dataset import MultiObjectDataset
-from models.multi.modelMulti import ModelMulti
-from models.multi.trainLoop import train_multi
+from models.multi.modelMulti import ModelMulti, ModelMultiTwoHead
+from models.multi.trainLoop import train_multi, train_multi_two_head
 from models.single.dataset import SingleObjectDataset
 from models.single.modelSingle import ModelSingle
 from models.single.trainLoop import train_single
@@ -52,10 +52,10 @@ class TrainerMulti:
         
 
     def train(self) -> None:
-        model = ModelMulti(self.CLASS_COUNT).to(device)
+        model = ModelMultiTwoHead(self.CLASS_COUNT).to(device)
         optimizer = Adam(model.parameters(), lr=0.001)
         criterion = nn.BCELoss()
-        train_multi(model, criterion, optimizer, self.dataloaders, self.datasets, FREEZED_EPOCHS)
+        train_multi_two_head(model, criterion, optimizer, self.dataloaders, self.datasets, FREEZED_EPOCHS)
         model.unfreeze_last_resnet_layer()
         optimizer = Adam(model.parameters(), lr=0.0001)
         history = train_multi(model, criterion, optimizer, self.dataloaders, self.datasets, EPOCHS)
