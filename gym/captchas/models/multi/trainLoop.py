@@ -28,7 +28,9 @@ def train_multi(model: ModelMulti, criterion: torch.nn.Module, optimizer: Optimi
             targets = targets.to(device)
 
             class_encoded = targets[:, :model.classes_count]
-            class_number = torch.argmax(class_encoded, dim=-1)
+
+            is_any_object = torch.sum(class_encoded, dim=-1, dtype=torch.int32) # sum is equal to 0 only when there is no object class
+            class_number = torch.argmax(class_encoded, dim=-1) * is_any_object + torch.randint_like(is_any_object, model.classes_count) * (1 - is_any_object)
             batch_indices = torch.arange(class_number.shape[0])
 
             optimizer.zero_grad()
@@ -63,7 +65,9 @@ def train_multi(model: ModelMulti, criterion: torch.nn.Module, optimizer: Optimi
                 labels = labels.to(device)
 
                 class_encoded = labels[:, :model.classes_count]
-                class_number = torch.argmax(class_encoded, dim=-1)
+
+                is_any_object = torch.sum(class_encoded, dim=-1)
+                class_number = torch.argmax(class_encoded, dim=-1) * is_any_object + torch.randint_like(is_any_object, model.classes_count) * (1 - is_any_object)
                 batch_indices = torch.arange(class_number.shape[0])
                 
                 outputs = model(inputs)

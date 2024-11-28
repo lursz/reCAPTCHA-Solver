@@ -29,13 +29,11 @@ class MultiModelService(BaseModelService):
         self.model.eval()
 
     def predict(self, list_of_img: list) -> list[np.ndarray]:
-        class_tensor: torch.Tensor = torch.zeros(1, 12)
-        class_tensor[0, self.label_index] = 1
         tensor_list: list[torch.Tensor] = self.data_transform.pictures_to_tensors(list_of_img)
         list_of_predictions = []
         for tensor in tensor_list:
             img_tensor = tensor.unsqueeze(0)
-            pred = self.model(img_tensor, class_tensor)[0]
+            pred = self.model(img_tensor)[0, self.label_index]
             print(pred)
             should_select = pred.cpu().detach().numpy() > self.threshold
             list_of_predictions.append(should_select)
