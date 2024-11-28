@@ -18,20 +18,16 @@ class ModelMulti(nn.Module, ModelTools):
         self.resnet.fc = nn.Identity() # remove the final fully connected layer
         
         self.fc = nn.Sequential(
-            nn.Linear(512 + num_classes, 256),
-            nn.ReLU(),
-            nn.BatchNorm1d(256),
-            nn.Linear(256, 128),
+            nn.Linear(512, 128),
             nn.ReLU(),
             nn.BatchNorm1d(128),
             nn.Dropout(0.1),
-            nn.Linear(128, out_features=1),
+            nn.Linear(128, num_classes),
             nn.Sigmoid()
         )
 
-    def forward(self, img: torch.Tensor, class_encoded: torch.Tensor):
+    def forward(self, img: torch.Tensor):
         x = self.resnet(img)
-        x = torch.cat((x, class_encoded), dim=1) # concatenate class of the object we're looking for
         x = self.fc(x)
         return x
     

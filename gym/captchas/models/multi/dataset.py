@@ -95,7 +95,7 @@ class MultiObjectDataset(Dataset):
                     lambda x: __salt_and_pepper_transform(x, prob_salt=0.01),
                     lambda x: __cartoonize_image_transform(x)
                 ], p=[0.3, 0.1, 0.1, 0.1,0.1, 0.1, 0.1, 0.1]),
-                transforms.RandomAffine(degrees=20, translate=(0.1, 0.1), scale=(0.85, 1.15)),
+                #transforms.RandomAffine(degrees=20, translate=(0.1, 0.1), scale=(0.85, 1.15)),
                 transforms.ToTensor()
             ])
         else:

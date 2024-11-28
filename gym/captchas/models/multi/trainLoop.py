@@ -15,6 +15,8 @@ def train_multi(model: ModelMulti, criterion: torch.nn.Module, optimizer: Optimi
     val_accuracy_history: list = []
     val_loss_history: list = []
 
+    binary_cross_entropy = torch.nn.BCELoss()
+
     for epoch in range(EPOCHS):
         model.train()
         running_loss = 0.0
@@ -25,19 +27,26 @@ def train_multi(model: ModelMulti, criterion: torch.nn.Module, optimizer: Optimi
             images = images.to(device)
             targets = targets.to(device)
 
+            class_encoded = targets[:, :model.classes_count]
+            class_number = torch.argmax(class_encoded, dim=-1)
+            batch_indices = torch.arange(class_number.shape[0])
+
             optimizer.zero_grad()
-            outputs = model(images, targets[:, :model.classes_count]) # targets[one hot encoded class, is_positive]
+            outputs = model(images) # targets[one hot encoded class, is_positive]
             
-            targets_values = targets[:, model.classes_count:]
+            targets_values = targets[:, model.classes_count:].squeeze()
             targets_gauss = torch.clamp(targets_values + torch.randn_like(targets_values) * 0.1, 0, 1)
             
-            loss = criterion(outputs, targets_gauss)
+            # selected_values = torch.index_select(outputs, -1, class_number)
+            selected_values = outputs[batch_indices, class_number]
+
+            loss = binary_cross_entropy(selected_values, targets_gauss)
             loss.backward()
             optimizer.step()
 
             running_loss += loss.cpu().item() * images.cpu().size(0)
 
-            incorrects_count = torch.sum((outputs > 0.5) != (targets[:, model.classes_count:] > 0.5))
+            incorrects_count = torch.sum((selected_values > 0.5) != (targets_values > 0.5))
             running_corrects += len(images) - incorrects_count
         epoch_loss = running_loss / len(image_datasets['train'])
         epoch_acc = running_corrects / (len(image_datasets['train']))
@@ -52,13 +61,20 @@ def train_multi(model: ModelMulti, criterion: torch.nn.Module, optimizer: Optimi
             for i, (inputs, labels) in enumerate(tqdm(dataloaders['val'])):
                 inputs = inputs.to(device)
                 labels = labels.to(device)
+
+                class_encoded = labels[:, :model.classes_count]
+                class_number = torch.argmax(class_encoded, dim=-1)
+                batch_indices = torch.arange(class_number.shape[0])
                 
-                outputs = model(inputs, labels[:, :model.classes_count])
-                loss = criterion(outputs, labels[:, model.classes_count:])
-                
+                outputs = model(inputs)
+                selected_values = outputs[batch_indices, class_number]
+
+                targets_values = labels[:, model.classes_count:].squeeze()
+
+                loss = binary_cross_entropy(selected_values, targets_values)
                 val_running_loss += loss.cpu().item() * inputs.cpu().size(0)
                 
-                incorrects_count = torch.sum((outputs > 0.5) != (labels[:, model.classes_count:] > 0.5))
+                incorrects_count = torch.sum((selected_values > 0.5) != (targets_values > 0.5))
                 val_running_corrects += len(inputs) - incorrects_count
                     
         val_epoch_loss = val_running_loss / len(image_datasets['val'])
@@ -85,7 +101,7 @@ def train_multi_two_head(model: ModelMulti, optimizer: Optimizer, dataloaders: d
     val_accuracy_history: list = []
     val_loss_history: list = []
 
-    criterion_categorical = torch.nn.CrossEntropyLoss(reduce=None)
+    criterion_categorical = torch.nn.CrossEntropyLoss(reduction="none")
     criterion_binary = torch.nn.BCELoss()
     
     for epoch in range(EPOCHS):
@@ -108,6 +124,7 @@ def train_multi_two_head(model: ModelMulti, optimizer: Optimizer, dataloaders: d
             targets_gauss = torch.clamp(targets_values + torch.randn_like(targets_values) * 0.1, 0, 1)
             
             loss_binary = criterion_binary(outputs_binary, targets_gauss)
+
             loss_categorical = (criterion_categorical(outputs_categorical, targets_class_numbers) * targets_is_positive).mean()
             loss = loss_binary + loss_categorical
             
