@@ -21,7 +21,7 @@ class ModelMulti(nn.Module, ModelTools):
             nn.Linear(512, 128),
             nn.ReLU(),
             nn.BatchNorm1d(128),
-            nn.Dropout(0.1),
+            nn.Dropout(0.2),
             nn.Linear(128, num_classes),
             nn.Sigmoid()
         )
