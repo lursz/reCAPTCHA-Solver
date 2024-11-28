@@ -66,7 +66,7 @@ def train_multi(model: ModelMulti, criterion: torch.nn.Module, optimizer: Optimi
 
                 class_encoded = labels[:, :model.classes_count]
 
-                is_any_object = torch.sum(class_encoded, dim=-1)
+                is_any_object = torch.sum(class_encoded, dim=-1, dtype=torch.int32)
                 class_number = torch.argmax(class_encoded, dim=-1) * is_any_object + torch.randint_like(is_any_object, model.classes_count) * (1 - is_any_object)
                 batch_indices = torch.arange(class_number.shape[0])
                 
