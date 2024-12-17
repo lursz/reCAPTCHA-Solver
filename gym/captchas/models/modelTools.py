@@ -1,10 +1,9 @@
 from matplotlib import pyplot as plt
 import numpy as np
-import torchsummary
-
+from torchinfo import summary
 class ModelTools:
     def print_model_summary(self):
-        print(torchsummary.summary(self, (3, 150, 150)))
+        print(summary(self, (1, 3, 150, 150)))
         
     def plot_accuracy_from_history(self, *histories, labels=None, path=None) -> None:
         plt.rcParams['figure.figsize'] = (25.0, 5.0)  # set default size of plots

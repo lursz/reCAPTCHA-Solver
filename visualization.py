@@ -4,7 +4,7 @@ import torch
 from torchviz import make_dot
 
 from gym.captchas.models.single.modelSingle import ModelSingle
-from gym.captchas.models.multi.modelMulti import ModelMulti
+from gym.captchas.models.multi.modelMulti import ModelMulti, ModelMultiSimple, ModelMultiTwoHead
 load_dotenv()
 
 class Visualization:
@@ -12,21 +12,14 @@ class Visualization:
         pass
 
     def visualizeModelMulti(self) -> None:
-        model = ModelMulti(12)
-        model_path = os.getenv('CAPTCHA_MODEL_MULTI')
-        model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
-        model.eval()
-        make_dot(model(torch.rand(1, 3, 120, 120), torch.rand(1, 12)), params=dict(model.named_parameters())).render("modelMulti", format="png")
+        model = ModelMultiSimple(12)
+        model.print_model_summary()
         
     def visualizeModelSingle(self) -> None:
-        model_path = os.getenv('CAPTCHA_MODEL_SINGLE')
-        model = ModelSingle(12)
-        model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
-        model.eval()
-        make_dot(model(torch.rand(1, 3, 120, 120), torch.rand(1, 12)), params=dict(model.named_parameters())).render("modelSingle", format="png")
+        model = ModelSingle(11)
     
 
 if __name__ == '__main__':
         viz = Visualization()
         viz.visualizeModelMulti()
-        viz.visualizeModelSingle()
+        # viz.visualizeModelSingle()
