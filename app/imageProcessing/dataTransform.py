@@ -1,7 +1,6 @@
 from torch._tensor import Tensor
 from torchvision import transforms
 from abc import ABC, abstractmethod
-import cv2
 
 class DataTransform(ABC):
     def __init__(self) -> None:
