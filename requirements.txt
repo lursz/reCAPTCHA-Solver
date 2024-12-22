@@ -8,6 +8,6 @@ tqdm>=4.66.4
 opencv-python>=4.9.0.80
 easyocr>=1.7.1
 pandas>=2.2.2
-torchsummary>=1.5.1
+torchinfo>=1.8.0
 python-dotenv>=1.0.1
 albumentations>=1.4.15
