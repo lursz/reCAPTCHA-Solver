@@ -23,15 +23,14 @@ def train_multi(model: ModelMulti, criterion: torch.nn.Module, optimizer: Optimi
         running_corrects = 0
         
         # Training
-        for i, (images, targets) in enumerate(tqdm(dataloaders['train'])):
+        for images, targets in tqdm(dataloaders['train']):
             images = images.to(device)
             targets = targets.to(device)
 
             class_encoded = targets[:, :model.classes_count]
 
             is_any_object = torch.sum(class_encoded, dim=-1, dtype=torch.int32) # sum is equal to 0 only when there is no object class
-            class_number = torch.argmax(class_encoded, dim=-1) * is_any_object + torch.randint_like(is_any_object, model.classes_count) * (1 - is_any_object)
-            batch_indices = torch.arange(class_number.shape[0])
+            class_idx = torch.argmax(class_encoded, dim=-1) * is_any_object + torch.randint_like(is_any_object, model.classes_count) * (1 - is_any_object) # if no class (only 0 in tensor), choose random class
 
             optimizer.zero_grad()
             outputs = model(images) # targets[one hot encoded class, is_positive]
@@ -39,8 +38,8 @@ def train_multi(model: ModelMulti, criterion: torch.nn.Module, optimizer: Optimi
             targets_values = targets[:, model.classes_count:].squeeze()
             targets_gauss = torch.clamp(targets_values + torch.randn_like(targets_values) * 0.1, 0, 1)
             
-            # selected_values = torch.index_select(outputs, -1, class_number)
-            selected_values = outputs[batch_indices, class_number]
+            batch_indices = torch.arange(class_idx.shape[0]) # for batch 8, indices will be [0, 1, 2, 3, 4, 5, 6, 7]
+            selected_values = outputs[batch_indices, class_idx]
 
             loss = binary_cross_entropy(selected_values, targets_gauss)
             loss.backward()
@@ -60,18 +59,18 @@ def train_multi(model: ModelMulti, criterion: torch.nn.Module, optimizer: Optimi
         val_running_loss = 0.0
         val_running_corrects = 0
         with torch.no_grad():
-            for i, (inputs, labels) in enumerate(tqdm(dataloaders['val'])):
+            for inputs, labels in tqdm(dataloaders['val']):
                 inputs = inputs.to(device)
                 labels = labels.to(device)
 
                 class_encoded = labels[:, :model.classes_count]
 
                 is_any_object = torch.sum(class_encoded, dim=-1, dtype=torch.int32)
-                class_number = torch.argmax(class_encoded, dim=-1) * is_any_object + torch.randint_like(is_any_object, model.classes_count) * (1 - is_any_object)
-                batch_indices = torch.arange(class_number.shape[0])
+                class_idx = torch.argmax(class_encoded, dim=-1) * is_any_object + torch.randint_like(is_any_object, model.classes_count) * (1 - is_any_object)
+                batch_indices = torch.arange(class_idx.shape[0])
                 
                 outputs = model(inputs)
-                selected_values = outputs[batch_indices, class_number]
+                selected_values = outputs[batch_indices, class_idx]
 
                 targets_values = labels[:, model.classes_count:].squeeze()
 
@@ -114,7 +113,7 @@ def train_multi_two_head(model: ModelMultiTwoHead, optimizer: Optimizer, dataloa
         running_corrects = 0
         
         # Training
-        for i, (images, targets) in enumerate(tqdm(dataloaders['train'])):
+        for images, targets in tqdm(dataloaders['train']):
             images = images.to(device)
             targets = targets.to(device)
             targets_only_classes = targets[:, :model.classes_count] # one hot encoded class
@@ -149,7 +148,7 @@ def train_multi_two_head(model: ModelMultiTwoHead, optimizer: Optimizer, dataloa
         val_running_loss = 0.0
         val_running_corrects = 0
         with torch.no_grad():
-            for i, (inputs, labels) in enumerate(tqdm(dataloaders['val'])):
+            for inputs, labels in tqdm(dataloaders['val']):
                 inputs = inputs.to(device)
                 labels = labels.to(device)
                 
