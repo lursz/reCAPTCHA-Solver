@@ -1,6 +1,7 @@
 from torch._tensor import Tensor
 from torchvision import transforms
 from abc import ABC, abstractmethod
+import cv2
 
 class DataTransform(ABC):
     def __init__(self) -> None:
@@ -24,7 +25,8 @@ class DataTransformSingle(DataTransform):
 class DataTransformMulti(DataTransform):
     def __init__(self) -> None:
         self.data_transform = transforms.Compose([
+            # lambda img: cv2.medianBlur(img, 3),
             transforms.ToTensor(),
-            transforms.Resize(120),
+            transforms.Resize(224),
             # transforms.CenterCrop(150)
         ])
