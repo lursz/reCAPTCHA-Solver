@@ -1,3 +1,4 @@
+import pickle
 from matplotlib import pyplot as plt
 import numpy as np
 from torchinfo import summary
@@ -28,3 +29,7 @@ class ModelTools:
             plt.savefig(path)
         else:
             plt.show()
+            
+    def save_learning_data_to_pickle(self, history: dict, path: str) -> None:
+        with open(path, 'wb') as file:
+            pickle.dump(history, file)

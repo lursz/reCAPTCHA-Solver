@@ -5,7 +5,7 @@ from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 
 from .dataset import MultiObjectDataset
-from .modelMulti import ModelMulti
+from .modelMulti import ModelMulti, ModelMultiTwoHead
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
@@ -99,7 +99,7 @@ def train_multi(model: ModelMulti, criterion: torch.nn.Module, optimizer: Optimi
     return history
 
 
-def train_multi_two_head(model: ModelMulti, optimizer: Optimizer, dataloaders: dict[str, DataLoader], image_datasets: dict[str, MultiObjectDataset], EPOCHS: int) -> dict:
+def train_multi_two_head(model: ModelMultiTwoHead, optimizer: Optimizer, dataloaders: dict[str, DataLoader], image_datasets: dict[str, MultiObjectDataset], EPOCHS: int) -> dict:
     accuracy_history: list = []
     loss_history: list = []
     val_accuracy_history: list = []

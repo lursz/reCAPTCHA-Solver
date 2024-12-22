@@ -41,9 +41,6 @@ def train_single(model: ModelSingle, criterion: torch.nn.Module, optimizer: Opti
         accuracy_history.append(epoch_acc)
         loss_history.append(epoch_loss)
         
-        # Validation (only every 5th epoch)
-        if epoch % 5 != 4:
-            continue
         
         model.eval()
         val_running_loss = 0.0
@@ -66,9 +63,8 @@ def train_single(model: ModelSingle, criterion: torch.nn.Module, optimizer: Opti
         val_epoch_loss = val_running_loss / len(image_datasets['val'])
         val_epoch_acc = val_running_corrects / (len(image_datasets['val']) * 16)
 
-        for _ in range(5):
-            val_accuracy_history.append(val_epoch_acc)
-            val_loss_history.append(val_epoch_loss)
+        val_accuracy_history.append(val_epoch_acc)
+        val_loss_history.append(val_epoch_loss)
 
         print(f'Epoch {epoch+1}/{EPOCHS} Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
         print(f'Validation Loss: {val_epoch_loss:.4f} Acc: {val_epoch_acc:.4f}')
