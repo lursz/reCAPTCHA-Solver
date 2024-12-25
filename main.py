@@ -8,7 +8,7 @@ from app.guiAgent.guiAgent import GuiAgent
 from app.imageProcessing.imageProcessors.imageProcessorFactory import ImageProcessorFactory
 from app.imageProcessing.ocr import OCR
 from app.mouseMovement.mouseEngine import MouseEngine
-from services import MultiModelService, SingleModelService
+from app.services import MultiModelService, SingleModelService
 load_dotenv()
 
 class CaptchaProcessor:

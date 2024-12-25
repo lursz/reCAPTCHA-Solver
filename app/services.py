@@ -2,7 +2,7 @@
 import os
 import numpy as np
 import torch
-from app.imageProcessing.dataTransform import DataTransformMulti, DataTransformSingle
+from app.dataTransform import DataTransformMulti, DataTransformSingle
 from gym.captchas.models.multi.modelMulti import ModelMulti
 from gym.captchas.models.single.modelSingle import ModelSingle
 

@@ -56,21 +56,16 @@ class TrainerMulti:
         model = ModelMulti(self.CLASS_COUNT).to(device)
         optimizer = Adam(model.parameters(), lr=0.001)
         criterion = nn.BCELoss()
-        # history0 = train_multi_two_head(model, optimizer, self.dataloaders, self.datasets, FREEZED_EPOCHS)
-        history0 = train_multi(model, criterion, optimizer, self.dataloaders, self.datasets, FREEZED_EPOCHS)
+        # history = train_multi_two_head(model, optimizer, self.dataloaders, self.datasets, FREEZED_EPOCHS)
+        history = train_multi(model, criterion, optimizer, self.dataloaders, self.datasets, FREEZED_EPOCHS)
         model.unfreeze_last_resnet_layer()
         optimizer = Adam(model.parameters(), lr=0.0001)
-        history1 = train_multi(model, criterion, optimizer, self.dataloaders, self.datasets, EPOCHS)
-        # history1 = train_multi_two_head(model, optimizer, self.dataloaders, self.datasets, EPOCHS)
-        max_accuracy = int(max([value.cpu().item() for value in history1['val_accuracy']]) * 100)
+        history += train_multi(model, criterion, optimizer, self.dataloaders, self.datasets, EPOCHS)
+        # history += train_multi_two_head(model, optimizer, self.dataloaders, self.datasets, EPOCHS)
+        max_accuracy = int(max([value.cpu().item() for value in history['val_accuracy']]) * 100)
+        
         torch.save(model.state_dict(), f'{CAPTCHA_RESULT_MODELS_DIR}/model_multi_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")}_{max_accuracy}.pt')
-        history_all = {
-            'accuracy': history0['accuracy'] + history1['accuracy'],
-            'val_accuracy': history0['val_accuracy'] + history1['val_accuracy'],
-            'loss': history0['loss'] + history1['loss'],
-            'val_loss': history0['val_loss'] + history1['val_loss']
-        }
-        model.save_learning_data_to_pickle(history_all, path="history_multi.pickle")
+        model.save_learning_data_to_pickle(history, path="history_multi.pickle")
 
 
 class TrainerSingle:
@@ -93,26 +88,18 @@ class TrainerSingle:
         model = ModelSingle(num_classes=self.NUM_CLASSES)
         criterion = nn.BCELoss()
         optimizer = Adam(model.parameters(), lr=0.001)
-        history0 = train_single(model, criterion, optimizer, self.dataloaders,  self.datasets, FREEZED_EPOCHS)
+        history = train_single(model, criterion, optimizer, self.dataloaders,  self.datasets, FREEZED_EPOCHS)
         model.unfreeze_last_resnet_layer()
         optimizer = Adam(model.parameters(), lr=0.0001)
-        history1 = train_single(model, criterion, optimizer, self.dataloaders, self.datasets, UNFREEZED_LAST_LAYER_EPOCHS)
+        history += train_single(model, criterion, optimizer, self.dataloaders, self.datasets, UNFREEZED_LAST_LAYER_EPOCHS)
         model.unfreeze_second_to_last_resnet_layer()
         optimizer = Adam(model.parameters(), lr=0.0001)
-        history2 = train_single(model, criterion, optimizer, self.dataloaders, self.datasets, EPOCHS)
-        max_accuracy = int(max([value.cpu().item() for value in history2['val_accuracy']]) * 100)
+        history += train_single(model, criterion, optimizer, self.dataloaders, self.datasets, EPOCHS)
+        
+        max_accuracy = int(max([value.cpu().item() for value in history['val_accuracy']]) * 100)
         torch.save(model.state_dict(), f'{CAPTCHA_RESULT_MODELS_DIR}/model_single_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")}_{max_accuracy}.pt')
+        model.save_learning_data_to_pickle(history, path="history_single.pickle")
         
-        hisotry_all = {
-            'accuracy': history0['accuracy'] + history1['accuracy'] + history2['accuracy'],
-            'val_accuracy': history0['val_accuracy'] + history1['val_accuracy'] + history2['val_accuracy'],
-            'loss': history0['loss'] + history1['loss'] + history2['loss'],
-            'val_loss': history0['val_loss'] + history1['val_loss'] + history2['val_loss']
-        }
-        model.save_learning_data_to_pickle(hisotry_all, path="history_single.pickle")
-        
-        
-
         
 
 if __name__ == '__main__':
