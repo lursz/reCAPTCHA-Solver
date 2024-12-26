@@ -15,9 +15,11 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 CAPTCHA_DATASET_DIR: str= 'input/images/'
 CAPTCHA_RESULT_MODELS_DIR: str= 'results/'
-FREEZED_EPOCHS = 40
+# FREEZED_EPOCHS = 40
+FREEZED_EPOCHS = 1
 UNFREEZED_LAST_LAYER_EPOCHS = 60
-EPOCHS = 20
+EPOCHS = 2
+
 
 
 class TrainerMulti:
@@ -60,7 +62,7 @@ class TrainerMulti:
         history = train_multi(model, criterion, optimizer, self.dataloaders, self.datasets, FREEZED_EPOCHS)
         model.unfreeze_last_resnet_layer()
         optimizer = Adam(model.parameters(), lr=0.0001)
-        history += train_multi(model, criterion, optimizer, self.dataloaders, self.datasets, EPOCHS)
+        history = train_multi(model, criterion, optimizer, self.dataloaders, self.datasets, EPOCHS)
         # history += train_multi_two_head(model, optimizer, self.dataloaders, self.datasets, EPOCHS)
         max_accuracy = int(max([value.cpu().item() for value in history['val_accuracy']]) * 100)
         
@@ -91,10 +93,10 @@ class TrainerSingle:
         history = train_single(model, criterion, optimizer, self.dataloaders,  self.datasets, FREEZED_EPOCHS)
         model.unfreeze_last_resnet_layer()
         optimizer = Adam(model.parameters(), lr=0.0001)
-        history += train_single(model, criterion, optimizer, self.dataloaders, self.datasets, UNFREEZED_LAST_LAYER_EPOCHS)
+        history = train_single(model, criterion, optimizer, self.dataloaders, self.datasets, UNFREEZED_LAST_LAYER_EPOCHS)
         model.unfreeze_second_to_last_resnet_layer()
         optimizer = Adam(model.parameters(), lr=0.0001)
-        history += train_single(model, criterion, optimizer, self.dataloaders, self.datasets, EPOCHS)
+        history = train_single(model, criterion, optimizer, self.dataloaders, self.datasets, EPOCHS)
         
         max_accuracy = int(max([value.cpu().item() for value in history['val_accuracy']]) * 100)
         torch.save(model.state_dict(), f'{CAPTCHA_RESULT_MODELS_DIR}/model_single_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")}_{max_accuracy}.pt')
