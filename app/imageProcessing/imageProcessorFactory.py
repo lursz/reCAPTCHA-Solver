@@ -3,10 +3,10 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-from concreteProcessors.baseImageProcessor import BaseImageProcessor
+from .concreteProcessors.baseImageProcessor import BaseImageProcessor
 from .initialImageProcessor import InitialImageProcessor
-from concreteProcessors.multiImageProcessor import MultiimageProcessor
-from concreteProcessors.singleImageProcessor import SingleImageProcessor
+from .concreteProcessors.multiImageProcessor import MultiimageProcessor
+from .concreteProcessors.singleImageProcessor import SingleImageProcessor
 
 
 class ImageProcessorFactory:
