@@ -5,10 +5,10 @@ import numpy as np
 from pyautogui import sleep
 
 from app.guiAgent.guiAgent import GuiAgent
-from app.imageProcessing.imageProcessors.imageProcessorFactory import ImageProcessorFactory
+from app.imageProcessing.imageProcessorFactory import ImageProcessorFactory
 from app.imageProcessing.ocr import OCR
 from app.mouseMovement.mouseEngine import MouseEngine
-from services import MultiModelService, SingleModelService
+from app.services import MultiModelService, SingleModelService
 load_dotenv()
 
 class CaptchaProcessor:
@@ -46,7 +46,7 @@ class CaptchaProcessor:
         try:
             next_position = self.gui_agent.locate_on_screen(self.next_icon)
             self.mouse_engine.move_mouse_all_the_way(next_position)
-            sleep(1)
+            sleep(2)
             self.process_captcha()
         except Exception as e:
             print("No next icon found.")

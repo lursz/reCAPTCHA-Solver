@@ -7,9 +7,9 @@ def preprocess_dataset(image_path: str, new_image_path: str) -> None:
     image_files: list[str] = [os.path.join(dir_path, file_name) for dir_path, _, file_names in os.walk(image_path) for file_name in file_names]
 
     # select 80% of the images for training, 10% for validation, and 10% for testing
-    train_ratio = 0.8
+    train_ratio = 0.9
     val_ratio = 0.1
-    test_ratio = 0.1
+    test_ratio = 0.0
 
     train_images = []
     val_images = []
@@ -46,7 +46,7 @@ def preprocess_dataset(image_path: str, new_image_path: str) -> None:
 if __name__ == '__main__':
     # replace with the path to the folder containing the images from the dataset
     # .-^-._.-^-._.-^-._.-^-._.-^-._.-^-._.-^-._.-^-._.-^-._.-^-._.-^-._
-    image_path = 'kaggle/'
-    new_image_path = 'processed_dataset/images'
+    image_path = 'input/images'
+    new_image_path = 'input/processed_dataset/images'
     # .-^-._.-^-._.-^-._.-^-._.-^-._.-^-._.-^-._.-^-._.-^-._.-^-._.-^-._
     preprocess_dataset(image_path, new_image_path)

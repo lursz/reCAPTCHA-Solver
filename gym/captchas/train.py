@@ -5,8 +5,8 @@ from torch.utils.data import DataLoader
 import datetime
 from torch.optim.adam import Adam
 from models.multi.dataset import MultiObjectDataset
-from models.multi.modelMulti import ModelMulti
-from models.multi.trainLoop import train_multi
+from models.multi.modelMulti import ModelMulti, ModelMultiTwoHead
+from models.multi.trainLoop import train_multi, train_multi_two_head
 from models.single.dataset import SingleObjectDataset
 from models.single.modelSingle import ModelSingle
 from models.single.trainLoop import train_single
@@ -15,9 +15,11 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 CAPTCHA_DATASET_DIR: str= 'input/images/'
 CAPTCHA_RESULT_MODELS_DIR: str= 'results/'
-FREEZED_EPOCHS = 20
+# FREEZED_EPOCHS = 40
+FREEZED_EPOCHS = 1
 UNFREEZED_LAST_LAYER_EPOCHS = 60
-EPOCHS = 150
+EPOCHS = 2
+
 
 
 class TrainerMulti:
@@ -40,29 +42,32 @@ class TrainerMulti:
         self.datasets: dict[str, MultiObjectDataset] = {
             'train': MultiObjectDataset(CAPTCHA_DATASET_DIR + 'train', True, captcha_objects_index),
             'val': MultiObjectDataset(CAPTCHA_DATASET_DIR + 'val', False, captcha_objects_index),
-            'test': MultiObjectDataset(CAPTCHA_DATASET_DIR + 'test', False, captcha_objects_index)
+            # 'test': MultiObjectDataset(CAPTCHA_DATASET_DIR + 'test', False, captcha_objects_index)
         }
    
         self.dataloaders: dict[str, DataLoader] = {
-            'train': DataLoader(self.datasets['train'], batch_size=8, shuffle=True),
-            'val': DataLoader(self.datasets['val'], batch_size=4, shuffle=True),
-            'test': DataLoader(self.datasets['test'], batch_size=4, shuffle=True)
+            'train': DataLoader(self.datasets['train'], batch_size=20, shuffle=True),
+            'val': DataLoader(self.datasets['val'], batch_size=8, shuffle=True),
+            # 'test': DataLoader(self.datasets['test'], batch_size=4, shuffle=True)
         }
         self.CLASS_COUNT = self.datasets['train'].CLASS_COUNT
         
 
     def train(self) -> None:
+        # model = ModelMultiTwoHead(self.CLASS_COUNT).to(device)
         model = ModelMulti(self.CLASS_COUNT).to(device)
-        criterion = nn.BCELoss()
         optimizer = Adam(model.parameters(), lr=0.001)
-        train_multi(model, criterion, optimizer, self.dataloaders, self.datasets, FREEZED_EPOCHS)
+        criterion = nn.BCELoss()
+        # history = train_multi_two_head(model, optimizer, self.dataloaders, self.datasets, FREEZED_EPOCHS)
+        history = train_multi(model, criterion, optimizer, self.dataloaders, self.datasets, FREEZED_EPOCHS)
         model.unfreeze_last_resnet_layer()
         optimizer = Adam(model.parameters(), lr=0.0001)
         history = train_multi(model, criterion, optimizer, self.dataloaders, self.datasets, EPOCHS)
+        # history += train_multi_two_head(model, optimizer, self.dataloaders, self.datasets, EPOCHS)
         max_accuracy = int(max([value.cpu().item() for value in history['val_accuracy']]) * 100)
+        
         torch.save(model.state_dict(), f'{CAPTCHA_RESULT_MODELS_DIR}/model_multi_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")}_{max_accuracy}.pt')
-        model.plot_accuracy_from_history(history)  #, path="accuracy_plot.png")
-
+        model.save_learning_data_to_pickle(history, path="history_multi.pickle")
 
 
 class TrainerSingle:
@@ -85,18 +90,18 @@ class TrainerSingle:
         model = ModelSingle(num_classes=self.NUM_CLASSES)
         criterion = nn.BCELoss()
         optimizer = Adam(model.parameters(), lr=0.001)
-        train_single(model, criterion, optimizer, self.dataloaders,  self.datasets, FREEZED_EPOCHS)
+        history = train_single(model, criterion, optimizer, self.dataloaders,  self.datasets, FREEZED_EPOCHS)
         model.unfreeze_last_resnet_layer()
         optimizer = Adam(model.parameters(), lr=0.0001)
         history = train_single(model, criterion, optimizer, self.dataloaders, self.datasets, UNFREEZED_LAST_LAYER_EPOCHS)
         model.unfreeze_second_to_last_resnet_layer()
         optimizer = Adam(model.parameters(), lr=0.0001)
         history = train_single(model, criterion, optimizer, self.dataloaders, self.datasets, EPOCHS)
+        
         max_accuracy = int(max([value.cpu().item() for value in history['val_accuracy']]) * 100)
         torch.save(model.state_dict(), f'{CAPTCHA_RESULT_MODELS_DIR}/model_single_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")}_{max_accuracy}.pt')
-        model.plot_accuracy_from_history(history)  #, path="accuracy_plot.png")
+        model.save_learning_data_to_pickle(history, path="history_single.pickle")
         
-
         
 
 if __name__ == '__main__':
