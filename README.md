@@ -52,6 +52,7 @@ The project was created as a mono-repository, and its structure is logically div
 
   - The [docker/](/docker/) directory provides configurations for containerized deployment.
 
+![File-structure](https://github.com/user-attachments/assets/3aa1dc0f-dbf1-45d9-9402-a9d81536ac91)
 
 # How it all works?
 ## Screenshot and Segmentation
@@ -70,7 +71,7 @@ Currently, breaking reCAPTCHA systems primarily involves solving two core challe
 For the $3 \times 3$ Multiple Objects CAPTCHA a transfer learning solution was used. The base architecture for the NN was ResNet-18, with its final fully-connected layer removed, thus transforming it into a feature extractor. The extracted features were then passed through a fully connected layer with 12 outputs, each representing the probability of the input belonging to a specific class.  
 
 <div style="text-align: center;">
-    <img src="https://github.com/user-attachments/assets/d2f4f7cb-bb72-46d9-9c00-0f5e0747d32f" width="20%" style="background-color: grey; padding:10%; border-radius: 10px;">
+    <img src="https://github.com/user-attachments/assets/d2f4f7cb-bb72-46d9-9c00-0f5e0747d32f" width="30%" style="background-color: grey; padding:10%; border-radius: 10px;">
 </div>
 The model was trained in stages. First, fully frozen for few epochs, then with last layer unfrozen for few more epochs, and then with second-to-last layer unfrozen for the final training. The model was trained using the Adam optimizer with a varying learning rate.
 
@@ -85,7 +86,7 @@ The model was trained in stages. First, fully frozen for few epochs, then with l
 For the $4 \times 4$ Single Object CAPTCHA, again, a ResNet-18 structure was used, with its final fully connected layer removed. Then adjustments were done to address the challenge at hand - additional contextual information about the object class was added into the ResNet output by concatenating a class embedding with the extracted image features.
 
 <div style="text-align: center;">
-  <img src="https://github.com/user-attachments/assets/d2f4f7cb-bb72-46d9-9c00-0f5e0747d32f" width="20%" style="background-color: grey; padding:10%; border-radius: 10px;">
+  <img src="https://github.com/user-attachments/assets/cd73214f-060a-4850-bfb8-4069a4291f59" width="30%" style="background-color: grey; padding:10%; border-radius: 10px;">
 </div>
 
 The model was also trained in stages, with the same training strategy as the previous model. The model was trained using the Adam optimizer with a varying learning rate.
