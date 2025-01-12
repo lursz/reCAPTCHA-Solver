@@ -1,0 +1,17 @@
+name: Python Ruff & Black
+run-name: ${{ github.actor }} triggered workflow ${{ github.workflow }} from branch ${{ github.ref }}
+on: [push, pull_request]
+jobs:
+  linter_name:
+    name: runner / black formatter
+    runs-on: ubuntu-latest
+    steps:
+      # - uses: actions/checkout@v2
+      # - uses: rickstaa/action-black@v1
+      #   with:
+      #     black_args: "."
+      # - uses: chartboost/ruff-action@v1
+      #   with:
+      #     path: '.'
+      # - run: echo "🍏 This job's status is ${{ job.status }}."
+

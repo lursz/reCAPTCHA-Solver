@@ -9,9 +9,10 @@ This repository explores the feasibility of breaking image-based reCAPTCHA chall
 
 
 
-# How to use
+# How to use?
 ## Installation
 In order to run the program, you will need to install both `Docker` and `Python3.12` or greater, then `pip` and `poetry`. Then install the required dependencies by typing:
+
 ```bash
 poetry install
 poetry shell
