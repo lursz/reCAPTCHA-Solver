@@ -35,18 +35,16 @@ To ensure the CAPTCHA-solving program could process images despite various resol
 
 ## Machine Learning Models
 Currently, breaking reCAPTCHA systems primarily involves solving two core challenges. Naturally, there are additional ones, but all can be addressed using models trained for these core tasks:  
+- Multi-Image CAPTCHA
+- Single-Image CAPTCHA
 <div class="figure-container" style="display: flex;">
 <figure>
-<img src="https://github.com/user-attachments/assets/86b4601a-218a-4edb-9b6c-ab9805628408" width="80%">
-  <figcaption>Multiple-Image CAPTCHA</figcaption>
+<img src="https://github.com/user-attachments/assets/a0a9a400-0994-490e-8a57-170b66c8e2ee" width="40%">
 </figure>
 <figure>
-<img src="https://github.com/user-attachments/assets/298d010a-993e-4ea1-bf95-25ce2563867b" width="80%">
-  <figcaption>Single-Image CAPTCHA</figcaption>
+<img src="https://github.com/user-attachments/assets/033d2c32-b001-42db-ab20-2bb9efccb99d" width="40%">
 </figure>
 </div>
-
-
 
 For the $3 \times 3$ Multiple Objects CAPTCHA a transfer learning solution was used. The base architecture for the NN was ResNet-18, with its final fully-connected layer removed, thus transforming it into a feature extractor. The extracted features were then passed through a fully connected layer with 12 outputs, each representing the probability of the input belonging to a specific class.  
 <figure>
@@ -60,7 +58,7 @@ The model was trained in stages. First, fully frozen for few epochs, then with l
 
 For the 4x4 Single Object CAPTCHA, again, a ResNet-18 structure was used, with its final fully connected layer removed. Then adjustments were done to address the challenge at hand - additional contextual information about the object class was added into the ResNet output by concatenating a class embedding with the extracted image features.
 <figure>
-<img src="https://github.com/user-attachments/assets/d2f4f7cb-bb72-46d9-9c00-0f5e0747d32f" width="40%">
+<img src="https://github.com/user-attachments/assets/7177772e-c621-4deb-84ff-7b2580c8ba00" width="40%">
   <figcaption>Model-Single Diagram</figcaption>
 </figure>
 
