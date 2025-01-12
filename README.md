@@ -6,11 +6,6 @@ This repository explores the feasibility of breaking image-based reCAPTCHA chall
 
 [gifs]
 
-## Essence
-Currently, breaking reCAPTCHA systems primarily involves solving two core challenges. Naturally, there are additional ones, but all can be addressed using models trained for these core tasks:
-- Multi Image CAPTCHAs
-- Single Image CAPTCHAs
-[pic1][pic2]
 
 
 # How to use
@@ -33,5 +28,38 @@ python main.py
 ```
 
 # How it all works?
+## Screenshot and Segmentation
+To ensure the CAPTCHA-solving program could process images despite various resolutions in various systems, a segmentation algorithm was implemented.
+![image-segmentation](https://github.com/user-attachments/assets/d479d44d-e155-4cde-a0bc-b23736468e4f)
 
 
+## Machine Learning Models
+Currently, breaking reCAPTCHA systems primarily involves solving two core challenges. Naturally, there are additional ones, but all can be addressed using models trained for these core tasks:
+- Multi Image CAPTCHAs
+- Single Image CAPTCHAs
+![captcha_multi](https://github.com/user-attachments/assets/86b4601a-218a-4edb-9b6c-ab9805628408)
+*Multi-Image CAPTCHA*
+
+![captcha_single](https://github.com/user-attachments/assets/298d010a-993e-4ea1-bf95-25ce2563867b)
+*Single-Image CAPTCHA*
+
+For the $3 \times 3$ Multiple Objects CAPTCHA a transfer learning solution was used. The base architecture for the NN was ResNet-18, with its final fully-connected layer removed, thus transforming it into a feature extractor. The extracted features were then passed through a fully connected layer with 12 outputs, each representing the probability of the input belonging to a specific class.  
+![ModelMultiNoise](https://github.com/user-attachments/assets/d2f4f7cb-bb72-46d9-9c00-0f5e0747d32f)
+
+The model was trained in stages. First, fully frozen for few epochs, then with last layer unfrozen for few more epochs, and then with second-to-last layer unfrozen for the final training. The model was trained using the Adam optimizer with a varying learning rate.
+
+
+
+For the 4x4 Single Object CAPTCHA, again, a ResNet-18 structure was used, with its final fully connected layer removed. Then adjustments were done to address the challenge at hand - additional contextual information about the object class was added into the ResNet output by concatenating a class embedding with the extracted image features.
+![dataset-single](https://github.com/user-attachments/assets/1fa6c384-9d77-41bf-999d-576ca645039e)
+
+
+The model was also trained in stages, with the same training strategy as the previous model. The model was trained using the Adam optimizer with a varying learning rate.
+
+
+## Mouse Simulation
+The mouse movement functionality was implemented using the Strategy design pattern, enabling seamless substitution of different movement algorithms.
+
+One innovative strategy was a Generative Adversarial Network (GAN) for generating realistic mouse movements. To create the dataset for training, a simple game was developed where users clicked on a green square to start recording their mouse movements and a red square to stop. These recorded sequences were then used to train the GAN.
+
+Training GANs, however, is notoriously challenging. Issues such as mode collapse and instability made it difficult to train the model robustly. Hence, a baseline deterministic algorithm was also implemented as a strategy.
