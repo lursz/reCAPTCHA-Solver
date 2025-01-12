@@ -34,24 +34,35 @@ To ensure the CAPTCHA-solving program could process images despite various resol
 
 
 ## Machine Learning Models
-Currently, breaking reCAPTCHA systems primarily involves solving two core challenges. Naturally, there are additional ones, but all can be addressed using models trained for these core tasks:
-- Multi Image CAPTCHAs
-- Single Image CAPTCHAs
-![captcha_multi](https://github.com/user-attachments/assets/86b4601a-218a-4edb-9b6c-ab9805628408)
-*Multi-Image CAPTCHA*
+Currently, breaking reCAPTCHA systems primarily involves solving two core challenges. Naturally, there are additional ones, but all can be addressed using models trained for these core tasks:  
+<div class="figure-container" style="display: flex;">
+<figure>
+<img src="https://github.com/user-attachments/assets/86b4601a-218a-4edb-9b6c-ab9805628408" width="80%">
+  <figcaption>Multiple-Image CAPTCHA</figcaption>
+</figure>
+<figure>
+<img src="https://github.com/user-attachments/assets/298d010a-993e-4ea1-bf95-25ce2563867b" width="80%">
+  <figcaption>Single-Image CAPTCHA</figcaption>
+</figure>
+</div>
 
-![captcha_single](https://github.com/user-attachments/assets/298d010a-993e-4ea1-bf95-25ce2563867b)
-*Single-Image CAPTCHA*
+
 
 For the $3 \times 3$ Multiple Objects CAPTCHA a transfer learning solution was used. The base architecture for the NN was ResNet-18, with its final fully-connected layer removed, thus transforming it into a feature extractor. The extracted features were then passed through a fully connected layer with 12 outputs, each representing the probability of the input belonging to a specific class.  
-![ModelMultiNoise](https://github.com/user-attachments/assets/d2f4f7cb-bb72-46d9-9c00-0f5e0747d32f)
+<figure>
+<img src="https://github.com/user-attachments/assets/d2f4f7cb-bb72-46d9-9c00-0f5e0747d32f" width="40%">
+  <figcaption>Model-Multi Diagram</figcaption>
+</figure>
 
 The model was trained in stages. First, fully frozen for few epochs, then with last layer unfrozen for few more epochs, and then with second-to-last layer unfrozen for the final training. The model was trained using the Adam optimizer with a varying learning rate.
 
 
 
 For the 4x4 Single Object CAPTCHA, again, a ResNet-18 structure was used, with its final fully connected layer removed. Then adjustments were done to address the challenge at hand - additional contextual information about the object class was added into the ResNet output by concatenating a class embedding with the extracted image features.
-![dataset-single](https://github.com/user-attachments/assets/1fa6c384-9d77-41bf-999d-576ca645039e)
+<figure>
+<img src="https://github.com/user-attachments/assets/d2f4f7cb-bb72-46d9-9c00-0f5e0747d32f" width="40%">
+  <figcaption>Model-Single Diagram</figcaption>
+</figure>
 
 
 The model was also trained in stages, with the same training strategy as the previous model. The model was trained using the Adam optimizer with a varying learning rate.

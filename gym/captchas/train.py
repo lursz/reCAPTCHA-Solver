@@ -15,10 +15,9 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 CAPTCHA_DATASET_DIR: str= 'input/images/'
 CAPTCHA_RESULT_MODELS_DIR: str= 'results/'
-# FREEZED_EPOCHS = 40
-FREEZED_EPOCHS = 1
-UNFREEZED_LAST_LAYER_EPOCHS = 60
-EPOCHS = 2
+FREEZED_EPOCHS = 15
+UNFREEZED_LAST_LAYER_EPOCHS = 00
+EPOCHS = 100
 
 
 
