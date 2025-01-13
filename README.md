@@ -5,7 +5,10 @@ CAPTCHA is an acronym for Completely Automated Turing Test to Tell Computers and
 
 This repository explores the feasibility of breaking image-based reCAPTCHA challenges using machine learning techniques. The aim is to proove that reCAPTCHA is no longer safe, and can be broken with relatively mild effort, even without using transformer based models.
 
-[gifs]
+![gif_multi_1](https://github.com/user-attachments/assets/1b039749-1e6e-475e-bb67-ddf833d64926)
+![gif_multi_2](https://github.com/user-attachments/assets/fb8d9503-f335-4a09-8c56-4dc0705b9849)
+![gif_single1](https://github.com/user-attachments/assets/ee0e7dc0-184a-485b-a779-21d2a000c8c1)
+![gif_single2](https://github.com/user-attachments/assets/6d690635-55d1-43ea-806f-9870f652a43a)
 
 
 
