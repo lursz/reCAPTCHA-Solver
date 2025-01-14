@@ -14,12 +14,19 @@ This repository explores the feasibility of breaking image-based reCAPTCHA chall
 
 # How to use?
 ## Installation
-In order to run the program, you will need to install both `Docker` and `Python3.12` or greater, then `pip` and `poetry`. Then install the required dependencies by typing:
+In order to run the program, you will need to install both `Docker` and `Python3.12` or greater, then `pip` or `poetry`. Then follow the steps below:
+- poetry
+  ```bash
+  poetry install --no-root
+  poetry env activate
+  ```
+  then copy and paste the output into the terminal to activate the virtual environment.
 
-```bash
-poetry install
-poetry shell
-```
+- pip
+  ```bash
+  pip install .
+  ```
+
 
 ## Running the program
 Begin with editing `.env` file. Fill all the needed data - browser type and paths to files containing model weights.
