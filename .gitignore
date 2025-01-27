@@ -164,7 +164,7 @@ cython_debug/
 model/kaggle/ 
 processed_dataset/
 **/input/
-**/results/
+# **/results/
 # Saved model
 **/saved_models/
 **/trainer.ipynb
