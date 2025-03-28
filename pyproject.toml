@@ -1,12 +1,10 @@
 [project]
 name = "captcha"
-version = "1.0.0"
+version = "0.1.0"
 description = "This repository explores the feasibility of breaking image-based reCAPTCHA challenges using machine learning techniques. The aim is to proove that reCAPTCHA is no longer safe, and can be broken with relatively mild effort, even without using transformer based models."
-authors = [
-    {name = "lursz",email = "lukoszr@gmail.com"}
-]
+authors = [{name = "lursz",email = "lukoszr@gmail.com"}]
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 dependencies = [
     "numpy >=2.2.1",
     "torch >=2.2.2",
@@ -23,8 +21,3 @@ dependencies = [
     "python-dotenv >=1.0.1",
     "albumentations >=1.4.15"
 ]
-
-
-[build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
