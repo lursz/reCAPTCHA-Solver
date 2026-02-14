@@ -14,22 +14,14 @@ This repository explores the feasibility of breaking image-based reCAPTCHA chall
 
 # How to use?
 ## Installation
-In order to run the program, you will need to install both `Docker` and `Python3.12` or greater, then `pip` or `poetry`. Then follow the steps below:
-- poetry
-  ```bash
-  poetry install --no-root
-  poetry env activate
-  ```
-  then copy and paste the output into the terminal to activate the virtual environment.
-
-- pip
-  ```bash
-  pip install .
-  ```
+In order to run the program, you will need to install both `Docker` and `Python3.12` or greater, then install `uv`.
 
 
 ## Running the program
 Begin with editing `.env` file. Fill all the needed data - browser type and paths to files containing model weights.
+In order to work, reCAPTCHA requires you to provide a vaild site key. You can obtain them by creating a new reCAPTCHA project on the [Google reCAPTCHA admin page](https://www.google.com/recaptcha/admin/create). That key is used to identify the CAPTCHA service, you need to place it in the `docker/index.html` file in the `<your_captcha_site_key>` field.
+
+
 Then activate your docker container with:
 ```bash
 cd docker
@@ -37,7 +29,7 @@ sudo docker compose up
 ```
 and run the program by typing:
 ```bash
-python main.py
+uv run main.py
 ```
 
 
